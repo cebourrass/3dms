@@ -1,0 +1,40 @@
+## Visual Studio / .NET Core ##
+bin/
+obj/
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+
+## NuGet Packages ##
+*.nupkg
+package/
+node_modules/
+.nuget/
+
+## Build results ##
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+
+## System Files ##
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+## Project Specific ##
+.gemini/
+.idea/
+.vscode/
+
+## User-specific files ##
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vshost.exe
+*.vshost.exe.config
+*.vshost.exe.manifest
+*.vshost.exe.config.user
