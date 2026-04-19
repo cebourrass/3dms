@@ -137,6 +137,34 @@ namespace Analyzer.ViewModels
             }
         };
 
+        private bool _isLapsVisible = true;
+        public bool IsLapsVisible
+        {
+            get => _isLapsVisible;
+            set => SetProperty(ref _isLapsVisible, value);
+        }
+
+        private bool _isMapVisible = true;
+        public bool IsMapVisible
+        {
+            get => _isMapVisible;
+            set => SetProperty(ref _isMapVisible, value);
+        }
+
+        private bool _isSessionInfoVisible = true;
+        public bool IsSessionInfoVisible
+        {
+            get => _isSessionInfoVisible;
+            set => SetProperty(ref _isSessionInfoVisible, value);
+        }
+
+        private bool _isChartsVisible = true;
+        public bool IsChartsVisible
+        {
+            get => _isChartsVisible;
+            set => SetProperty(ref _isChartsVisible, value);
+        }
+
         public MainViewModel()
         {
             LoadExplorer();
@@ -256,11 +284,13 @@ namespace Analyzer.ViewModels
             var points = _readerService.ReadFile(filePath);
             if (points == null || !points.Any()) return;
 
+            var fileName = System.IO.Path.GetFileNameWithoutExtension(filePath);
             var session = new SessionData
             {
-                Title = System.IO.Path.GetFileNameWithoutExtension(filePath),
+                Title = fileName,
                 FilePath = filePath,
-                AllPoints = points
+                AllPoints = points,
+                Date = ParseDateFromFileName(fileName)
             };
 
             string? mapFile = FindMatchingMap(filePath);
@@ -491,6 +521,36 @@ namespace Analyzer.ViewModels
         {
             TimeSpan t = TimeSpan.FromMilliseconds(ms);
             return string.Format("{0:D2}:{1:D2}.{2:D2}", t.Minutes, t.Seconds, t.Milliseconds / 10);
+        }
+        private DateTime ParseDateFromFileName(string fileName)
+        {
+            try
+            {
+                // Format attendu : CIRCUIT-YYYY-MM-DD-HHhMM ou CIRCUIT_YYYY-MM-DD_HHhMM
+                var match = System.Text.RegularExpressions.Regex.Match(fileName, @"(\d{4}-\d{2}-\d{2})[_-](\d{2})[hH](\d{2})");
+                if (match.Success)
+                {
+                    var dateParts = match.Groups[1].Value.Split('-');
+                    int year = int.Parse(dateParts[0]);
+                    int month = int.Parse(dateParts[1]);
+                    int day = int.Parse(dateParts[2]);
+                    int hour = int.Parse(match.Groups[2].Value);
+                    int minute = int.Parse(match.Groups[3].Value);
+
+                    return new DateTime(year, month, day, hour, minute, 0);
+                }
+
+                // Fallback 1 : juste la date CIRCUIT-YYYY-MM-DD
+                var dateMatch = System.Text.RegularExpressions.Regex.Match(fileName, @"(\d{4}-\d{2}-\d{2})");
+                if (dateMatch.Success)
+                {
+                    var dateParts = dateMatch.Groups[1].Value.Split('-');
+                    return new DateTime(int.Parse(dateParts[0]), int.Parse(dateParts[1]), int.Parse(dateParts[2]));
+                }
+            }
+            catch { /* Fallback sur DateTime.Now */ }
+
+            return DateTime.Now;
         }
     }
 }
