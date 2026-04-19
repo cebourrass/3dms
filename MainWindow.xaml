@@ -150,6 +150,90 @@
                                     </dock:LayoutAnchorable>
                                 </dock:LayoutAnchorablePane>
 
+                                <!-- Session Info Panel -->
+                                <dock:LayoutAnchorablePane DockWidth="280">
+                                    <dock:LayoutAnchorable ContentId="SessionInfoPane" Title="Infos Session" CanClose="False">
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                            <StackPanel Margin="16">
+                                                <StackPanel Margin="0,0,0,12">
+                                                    <TextBlock Text="Date :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
+                                                    <TextBlock Text="{Binding CurrentSession.Date, StringFormat={}{0:yyyy-MM-dd - HH}h{0:mm}}" FontSize="13"/>
+                                                </StackPanel>
+
+                                                <StackPanel Margin="0,0,0,12">
+                                                    <TextBlock Text="Circuit :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
+                                                    <TextBlock Text="{Binding CircuitName}" FontSize="13"/>
+                                                </StackPanel>
+
+                                                <StackPanel Margin="0,0,0,12">
+                                                    <TextBlock Text="Évènement :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
+                                                    <TextBox Text="{Binding SessionEvent, UpdateSourceTrigger=PropertyChanged}" ui:ControlHelper.PlaceholderText="Ex: Roulage Club..."/>
+                                                </StackPanel>
+
+                                                <StackPanel Margin="0,0,0,12">
+                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                        <TextBlock Text="Pilote :" FontWeight="SemiBold" Opacity="0.7" FontSize="11"/>
+                                                        <TextBlock Text="(TODO: Profils)" Foreground="{DynamicResource SystemControlHighlightAccentBrush}" FontSize="9" VerticalAlignment="Bottom" Margin="4,0,0,0" Opacity="0.6"/>
+                                                    </StackPanel>
+                                                    <ComboBox ItemsSource="{Binding Pilots}" Text="{Binding SessionPilot}" IsEditable="True" ui:ControlHelper.PlaceholderText="Choisir ou saisir..."/>
+                                                </StackPanel>
+
+                                                <Separator Margin="0,4,0,12"/>
+
+                                                <!-- Performance Summary inside sidebar -->
+                                                <Grid Margin="0,0,0,12">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0">
+                                                        <TextBlock Text="Meilleur :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,2"/>
+                                                        <TextBlock Text="{Binding BestLapTime}" FontSize="15" FontWeight="Bold" Foreground="#007acc"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="Idéal :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,2"/>
+                                                        <TextBlock Text="{Binding IdealLapTime}" FontSize="15" FontWeight="SemiBold" Opacity="0.9"/>
+                                                    </StackPanel>
+                                                </Grid>
+
+                                                <Separator Margin="0,4,0,12"/>
+
+                                                <StackPanel Margin="0,0,0,12">
+                                                    <TextBlock Text="Véhicule :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
+                                                    <TextBox Text="{Binding SessionVehicle, UpdateSourceTrigger=PropertyChanged}" ui:ControlHelper.PlaceholderText="Modèle..."/>
+                                                </StackPanel>
+
+                                                <Grid Margin="0,0,0,12">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="3*"/>
+                                                        <ColumnDefinition Width="2*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                                        <TextBlock Text="Piste :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
+                                                        <ComboBox ItemsSource="{Binding TrackConditionsList}" SelectedValue="{Binding SessionTrackConditions}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="Temp. (°C) :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
+                                                        <ui:NumberBox Value="{Binding SessionTrackTemperature}" SpinButtonPlacementMode="Inline" SmallChange="1"/>
+                                                    </StackPanel>
+                                                </Grid>
+
+                                                <StackPanel Margin="0,0,0,12">
+                                                    <TextBlock Text="Pneumatiques :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
+                                                    <TextBox Text="{Binding SessionTires, UpdateSourceTrigger=PropertyChanged}" ui:ControlHelper.PlaceholderText="Modèle, gomme..."/>
+                                                </StackPanel>
+
+                                                <StackPanel Margin="0,0,0,12">
+                                                    <TextBlock Text="Notes :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
+                                                    <TextBox Text="{Binding SessionNotes, UpdateSourceTrigger=PropertyChanged}" 
+                                                             TextWrapping="Wrap" AcceptsReturn="True" MinHeight="80" MaxHeight="150" VerticalContentAlignment="Top"
+                                                             ui:ControlHelper.PlaceholderText="Pressions, réglages..."/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </ScrollViewer>
+                                    </dock:LayoutAnchorable>
+                                </dock:LayoutAnchorablePane>
+
                                 <!-- Map Panel -->
                                 <dock:LayoutAnchorablePane>
                                     <dock:LayoutAnchorable ContentId="MapPane" Title="Carte &amp; Tracé" CanClose="False">
