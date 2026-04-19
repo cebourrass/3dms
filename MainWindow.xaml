@@ -6,22 +6,43 @@
         xmlns:ui="http://schemas.modernwpf.com/2019"
         xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
         xmlns:vm="clr-namespace:Analyzer.ViewModels"
+        xmlns:dock="http://schemas.xceed.com/wpf/xaml/avalondock"
+        xmlns:Models="clr-namespace:Analyzer.Models"
         mc:Ignorable="d"
         ui:WindowHelper.UseModernWindowStyle="True"
         Title="3DMS Pro Analyzer" Height="800" Width="1200"
         Background="{DynamicResource SystemControlPageBackgroundAltHighBrush}">
     
+    <Window.Resources>
+        <HierarchicalDataTemplate DataType="{x:Type Models:FolderItem}" ItemsSource="{Binding Children}">
+            <StackPanel Orientation="Horizontal">
+                <ui:SymbolIcon Symbol="Folder" Margin="0,0,8,0"/>
+                <TextBlock Text="{Binding Name}"/>
+            </StackPanel>
+        </HierarchicalDataTemplate>
+        <DataTemplate DataType="{x:Type Models:SessionItem}">
+            <StackPanel Orientation="Horizontal">
+                <ui:SymbolIcon Symbol="OpenWith" Margin="0,0,8,0"/>
+                <TextBlock Text="{Binding Name}"/>
+            </StackPanel>
+        </DataTemplate>
+    </Window.Resources>
+
     <Grid>
         <ui:NavigationView x:Name="NavView" 
                           IsSettingsVisible="True"
                           PaneDisplayMode="Left"
                           IsBackButtonVisible="Collapsed">
-            <ui:NavigationView.MenuItems>
-                <ui:NavigationViewItem Content="Dashboard" Icon="Library" />
-                <ui:NavigationViewItem Content="Télémétrie" Icon="FourBars" />
-                <ui:NavigationViewItem Content="Carte &amp; Tours" Icon="Map" />
-                <ui:NavigationViewItem Content="Statistiques" Icon="PostUpdate" />
-            </ui:NavigationView.MenuItems>
+            
+            <ui:NavigationView.PaneHeader>
+                <TextBlock Text="Sessions 3DMS" Margin="12,12,0,12" FontWeight="Bold" FontSize="16"/>
+            </ui:NavigationView.PaneHeader>
+
+            <ui:NavigationView.PaneCustomContent>
+                <TreeView ItemsSource="{Binding ExplorerItems}" Background="Transparent" 
+                          BorderThickness="0" Margin="8,0" SelectedItemChanged="TreeView_SelectedItemChanged">
+                </TreeView>
+            </ui:NavigationView.PaneCustomContent>
 
             <Grid Margin="24">
                 <Grid.RowDefinitions>
@@ -36,45 +57,87 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="Lédenon - 12/04/2026" Style="{StaticResource HeaderTextBlockStyle}" Foreground="{DynamicResource SystemControlHighlightAccentBrush}"/>
+                        <TextBlock Text="{Binding SessionTitle}" Style="{StaticResource HeaderTextBlockStyle}" Foreground="{DynamicResource SystemControlHighlightAccentBrush}"/>
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                             <Border Background="#007acc" CornerRadius="10" Padding="8,2" Margin="0,0,12,0">
-                                <TextBlock Text="01:50.96" Foreground="White" FontWeight="Bold"/>
+                                <TextBlock Text="{Binding BestLapTime}" Foreground="White" FontWeight="Bold"/>
                             </Border>
-                            <TextBlock Text="Meilleur Tour Personnel" VerticalAlignment="Center" Opacity="0.7"/>
+                            <TextBlock Text="Meilleur Tour de la Session" VerticalAlignment="Center" Opacity="0.7"/>
                         </StackPanel>
                     </StackPanel>
                     <Button Grid.Column="1" Content="Ouvrir une session..." Click="OpenSession_Click" ui:ControlHelper.PlaceholderText="Charger un fichier .ra1"/>
                 </Grid>
 
                 <!-- Content Area -->
-                <UniformGrid Grid.Row="1" Columns="2">
-                    <!-- Telemetry Chart -->
-                    <Border Margin="0,0,12,0" Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" CornerRadius="8" BorderThickness="1" BorderBrush="#333">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Text="Vitesse et Angle d'inclinaison" Margin="12" FontWeight="Bold" Opacity="0.7"/>
-                            
-                            <lvc:CartesianChart Grid.Row="1" Series="{Binding SpeedSeries}" XAxes="{Binding XAxes}" Margin="10"/>
-                            <lvc:CartesianChart Grid.Row="2" Series="{Binding AngleSeries}" XAxes="{Binding XAxes}" Margin="10"/>
-                        </Grid>
-                    </Border>
-                    
-                    <!-- Map Placeholder -->
-                    <Border Margin="12,0,0,0" Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" CornerRadius="8" BorderThickness="1" BorderBrush="#333" ClipToBounds="True">
-                        <Grid>
-                            <Image Source="https://www.google.com/maps/vt/pb=!1m4!1m3!1i15!2i16447!3i11808!2m3!1e0!2sm!3i637156903!3m8!2sfr!3sp!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!1sfsy:1" Stretch="UniformToFill" Opacity="0.3"/>
-                            <TextBlock Text="Vue Map Satellite (En attente de données GPS)" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" Foreground="White" Opacity="0.5"/>
-                            
-                            <!-- Overlay Trajectory mockup -->
-                            <Polyline Points="50,150 100,100 150,120 200,80 250,200" Stroke="Cyan" StrokeThickness="3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Grid>
-                    </Border>
-                </UniformGrid>
+                <dock:DockingManager Grid.Row="1">
+                    <dock:LayoutRoot>
+                        <dock:LayoutPanel Orientation="Vertical">
+                            <dock:LayoutPanel Orientation="Horizontal">
+                                <!-- Laps View Panel -->
+                                <dock:LayoutAnchorablePane>
+                                    <dock:LayoutAnchorable ContentId="LapsPane" Title="Tableau des Tours" CanClose="False">
+                                        <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+                                            <DataGrid ItemsSource="{Binding Laps}" AutoGenerateColumns="False" 
+                                                      Background="Transparent" BorderThickness="0" CanUserAddRows="False"
+                                                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                                      HorizontalGridLinesBrush="#333" RowBackground="Transparent">
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="Tour" Binding="{Binding Number}" Width="50"/>
+                                                    <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="80"/>
+                                                    <DataGridTextColumn Header="Cumulé" Binding="{Binding CumulativeTime}" Width="100"/>
+                                                    <DataGridTextColumn Header="Temps" Binding="{Binding LapTime}" Width="100">
+                                                        <DataGridTextColumn.ElementStyle>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="FontWeight" Value="Bold"/>
+                                                                <Setter Property="Foreground" Value="Yellow"/>
+                                                            </Style>
+                                                        </DataGridTextColumn.ElementStyle>
+                                                    </DataGridTextColumn>
+                                                    <DataGridTextColumn Header="Vmax" Binding="{Binding MaxSpeed, StringFormat={}{0:F0} km/h}" Width="80"/>
+                                                    <DataGridTextColumn Header="Vmin" Binding="{Binding MinSpeed, StringFormat={}{0:F0} km/h}" Width="80"/>
+                                                    <DataGridTextColumn Header="Gauch" Binding="{Binding MaxLeanLeft, StringFormat={}{0:F0}°}" Width="60"/>
+                                                    <DataGridTextColumn Header="Droit" Binding="{Binding MaxLeanRight, StringFormat={}{0:F0}°}" Width="60"/>
+                                                    <DataGridTextColumn Header="Accel" Binding="{Binding MaxAccel, StringFormat={}{0:F2} g}" Width="60"/>
+                                                    <DataGridTextColumn Header="Decel" Binding="{Binding MaxDecel, StringFormat={}{0:F2} g}" Width="60"/>
+                                                    <DataGridTextColumn Header="P1" Binding="{Binding Partials[0]}" Width="80"/>
+                                                    <DataGridTextColumn Header="P2" Binding="{Binding Partials[1]}" Width="80"/>
+                                                    <DataGridTextColumn Header="P3" Binding="{Binding Partials[2]}" Width="80"/>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                        </Border>
+                                    </dock:LayoutAnchorable>
+                                </dock:LayoutAnchorablePane>
+
+                                <!-- Map Panel -->
+                                <dock:LayoutAnchorablePane>
+                                    <dock:LayoutAnchorable ContentId="MapPane" Title="Carte &amp; Tracé" CanClose="False">
+                                        <Grid Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" ClipToBounds="True">
+                                            <Image Source="https://www.google.com/maps/vt/pb=!1m4!1m3!1i15!2i16447!3i11808!2m3!1e0!2sm!3i637156903!3m8!2sfr!3sp!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!1sfsy:1" Stretch="UniformToFill" Opacity="0.5"/>
+                                            <Border Background="#AA000000" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="10" CornerRadius="4" Padding="8,4">
+                                                <TextBlock Text="{Binding CircuitName, StringFormat='Circuit : {0}'}" Foreground="White" FontSize="12"/>
+                                            </Border>
+                                            <Polyline Points="{Binding TrajectoryPoints}" Stroke="Cyan" StrokeThickness="3" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform" Margin="20"/>
+                                        </Grid>
+                                    </dock:LayoutAnchorable>
+                                </dock:LayoutAnchorablePane>
+                            </dock:LayoutPanel>
+
+                            <!-- Telemetry Panel (Bottom) -->
+                            <dock:LayoutAnchorablePane>
+                                <dock:LayoutAnchorable ContentId="ChartsPane" Title="Graphiques Télémétriques" CanClose="False">
+                                    <Grid Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <lvc:CartesianChart Series="{Binding SpeedSeries}" XAxes="{Binding XAxes}" Margin="10"/>
+                                        <lvc:CartesianChart Grid.Column="1" Series="{Binding AngleSeries}" XAxes="{Binding XAxes}" Margin="10"/>
+                                    </Grid>
+                                </dock:LayoutAnchorable>
+                            </dock:LayoutAnchorablePane>
+                        </dock:LayoutPanel>
+                    </dock:LayoutRoot>
+                </dock:DockingManager>
             </Grid>
         </ui:NavigationView>
     </Grid>

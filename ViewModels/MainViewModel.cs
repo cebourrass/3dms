@@ -16,6 +16,15 @@ namespace Analyzer.ViewModels
     public partial class MainViewModel : ObservableObject
     {
         private readonly Ra1ReaderService _readerService = new Ra1ReaderService();
+        private readonly MapReaderService _mapReaderService = new MapReaderService();
+        private readonly LapService _lapService = new LapService();
+
+        private TrackMap? _currentMap;
+        public TrackMap? CurrentMap
+        {
+            get => _currentMap;
+            set => SetProperty(ref _currentMap, value);
+        }
 
         private ISeries[] _speedSeries;
         public ISeries[] SpeedSeries
@@ -30,6 +39,46 @@ namespace Analyzer.ViewModels
             get => _angleSeries;
             set => SetProperty(ref _angleSeries, value);
         }
+        private ObservableCollection<LapData> _laps = new ObservableCollection<LapData>();
+        public ObservableCollection<LapData> Laps
+        {
+            get => _laps;
+            set => SetProperty(ref _laps, value);
+        }
+
+        private System.Windows.Media.PointCollection _trajectoryPoints = new System.Windows.Media.PointCollection();
+        public System.Windows.Media.PointCollection TrajectoryPoints
+        {
+            get => _trajectoryPoints;
+            set => SetProperty(ref _trajectoryPoints, value);
+        }
+
+        private string _circuitName = "Aucun circuit";
+        public string CircuitName
+        {
+            get => _circuitName;
+            set => SetProperty(ref _circuitName, value);
+        }
+
+        private ObservableCollection<ExplorerItem> _explorerItems = new ObservableCollection<ExplorerItem>();
+        public ObservableCollection<ExplorerItem> ExplorerItems
+        {
+            get => _explorerItems;
+            set => SetProperty(ref _explorerItems, value);
+        }
+
+        private ExplorerItem _selectedExplorerItem;
+        public ExplorerItem SelectedExplorerItem
+        {
+            get => _selectedExplorerItem;
+            set
+            {
+                if (SetProperty(ref _selectedExplorerItem, value) && value is SessionItem session)
+                {
+                    LoadSession(session.FilePath);
+                }
+            }
+        }
 
         public Axis[] XAxes { get; set; } = 
         {
@@ -42,16 +91,79 @@ namespace Analyzer.ViewModels
 
         public MainViewModel()
         {
-            // Initialisation par défaut avec un fichier si présent, sinon données mockup
-            string defaultPath = @"C:\dev\3DMS-CED\3DMS Evo (38.39.8F.DC.D1.31)\LEDENON-2026-04-12\2026-04-12 a 10h29.ra1";
-            if (System.IO.File.Exists(defaultPath))
+            LoadExplorer();
+            LoadDummyLaps();
+
+            // Charge le premier fichier trouvé par défaut
+            var firstSession = FindFirstSession(ExplorerItems);
+            if (firstSession != null)
             {
-                LoadSession(defaultPath);
+                LoadSession(firstSession.FilePath);
             }
             else
             {
                 LoadMockupData();
             }
+        }
+
+        private void LoadExplorer()
+        {
+            string rootPath = @"C:\dev\3DMS-CED";
+            var rootFolder = new FolderItem { Name = "Ma Moto (3DMS Evo)" };
+            
+            // On cherche le dossier spécifique s'il existe
+            string dataPath = System.IO.Path.Combine(rootPath, "3DMS Evo (38.39.8F.DC.D1.31)");
+            if (System.IO.Directory.Exists(dataPath))
+            {
+                foreach (var dir in System.IO.Directory.GetDirectories(dataPath))
+                {
+                    var trackFolder = new FolderItem { Name = System.IO.Path.GetFileName(dir) };
+                    foreach (var file in System.IO.Directory.GetFiles(dir, "*.ra1"))
+                    {
+                        trackFolder.Children.Add(new SessionItem { Name = System.IO.Path.GetFileName(file), FilePath = file });
+                    }
+                    rootFolder.Children.Add(trackFolder);
+                }
+            }
+            
+            ExplorerItems.Add(rootFolder);
+        }
+
+        private SessionItem FindFirstSession(IEnumerable<ExplorerItem> items)
+        {
+            foreach (var item in items)
+            {
+                if (item is SessionItem session) return session;
+                if (item is FolderItem folder)
+                {
+                    var found = FindFirstSession(folder.Children);
+                    if (found != null) return found;
+                }
+            }
+            return null;
+        }
+
+        private void LoadDummyLaps()
+        {
+            Laps.Clear();
+            Laps.Add(new LapData { Number = 1, Type = "Incomplet", CumulativeTime = "00:32.72", MaxSpeed = 44, MinSpeed = 0, MaxLeanLeft = 3, MaxLeanRight = 17, MaxAccel = 0.17f, MaxDecel = 0.09f, Partials = new[] { "-", "-", "-" } });
+            Laps.Add(new LapData { Number = 2, Type = "Incomplet", CumulativeTime = "00:31.62", MaxSpeed = 37, MinSpeed = 31, MaxLeanLeft = 1, MaxLeanRight = 2, MaxAccel = 0.00f, MaxDecel = 0.11f, Partials = new[] { "-", "-", "-" } });
+            Laps.Add(new LapData { Number = 3, Type = "Complet", CumulativeTime = "03:11.83", LapTime = "02:40.21", MaxSpeed = 184, MinSpeed = 0, MaxLeanLeft = 29, MaxLeanRight = 43, MaxAccel = 0.29f, MaxDecel = 0.22f, Partials = new[] { "01:10.96", "00:44.32", "00:26.33" } });
+            Laps.Add(new LapData { Number = 8, Type = "Complet", CumulativeTime = "12:44.79", LapTime = "01:50.96", MaxSpeed = 206, MinSpeed = 53, MaxLeanLeft = 30, MaxLeanRight = 26, MaxAccel = 0.29f, MaxDecel = 0.31f, Partials = new[] { "00:35.36", "00:34.93", "00:24.17" } });
+        }
+
+        private string _sessionTitle = "Aucune session";
+        public string SessionTitle
+        {
+            get => _sessionTitle;
+            set => SetProperty(ref _sessionTitle, value);
+        }
+
+        private string _bestLapTime = "--:--.--";
+        public string BestLapTime
+        {
+            get => _bestLapTime;
+            set => SetProperty(ref _bestLapTime, value);
         }
 
         [RelayCommand]
@@ -60,35 +172,77 @@ namespace Analyzer.ViewModels
             var points = _readerService.ReadFile(filePath);
             if (points == null || !points.Any()) return;
 
-            // On ne prend qu'un point sur 5 pour l'affichage si c'est trop dense (facultatif)
+            // Try to find a matching map
+            string sessionName = System.IO.Path.GetFileNameWithoutExtension(filePath);
+            string? mapFile = FindMatchingMap(filePath);
+            if (mapFile != null)
+            {
+                CurrentMap = _mapReaderService.ReadMap(mapFile);
+                CircuitName = CurrentMap.Name;
+                UpdateTrajectoryUI(CurrentMap);
+            }
+            else
+            {
+                CircuitName = "Circuit inconnu";
+                TrajectoryPoints = new System.Windows.Media.PointCollection();
+            }
+
+            // Update Header Info
+            SessionTitle = System.IO.Path.GetFileNameWithoutExtension(filePath);
+            Laps.Clear();
+            
+            // Calcul des tours réels
+            if (CurrentMap != null)
+            {
+                var calculatedLaps = _lapService.CalculateLaps(points, CurrentMap);
+                if (calculatedLaps.Any())
+                {
+                    foreach (var lap in calculatedLaps)
+                    {
+                        Laps.Add(lap);
+                    }
+                    
+                    var best = calculatedLaps.Where(l => l.Type == "Complet").OrderBy(l => l.LapTime).FirstOrDefault();
+                    if (best != null) BestLapTime = best.LapTime;
+                }
+                else
+                {
+                    Laps.Add(new LapData { Number = 1, Type = "Pas de tours", CumulativeTime = "00:00.00", MaxSpeed = points.Max(p => p.Speed) });
+                }
+            }
+            else
+            {
+                Laps.Add(new LapData { Number = 1, Type = "Circuit ?", CumulativeTime = "00:00.00", MaxSpeed = points.Max(p => p.Speed) });
+            }
+
+            // On ne prend qu'un point sur 2 pour l'affichage (10Hz -> 5Hz)
             var displayPoints = points.Where((p, i) => i % 2 == 0).ToList();
 
-            var times = displayPoints.Select(p => (double)p.Time / 1000.0).ToArray();
-            var speeds = displayPoints.Select(p => (double)p.Speed).ToArray();
-            var angles = displayPoints.Select(p => (double)p.LeanAngle).ToArray();
+            var speedValues = displayPoints.Select(p => (double)p.Speed).ToArray();
+            var angleValues = displayPoints.Select(p => (double)p.LeanAngle).ToArray();
 
-            SpeedSeries = new ISeries[]
-            {
-                new LineSeries<double>
-                {
-                    Values = speeds,
-                    Name = "Vitesse (km/h)",
-                    Fill = null,
-                    Stroke = new SolidColorPaint(SKColors.DodgerBlue) { StrokeThickness = 3 },
-                    GeometrySize = 0
-                }
+            SpeedSeries = new ISeries[] 
+            { 
+                new LineSeries<double> 
+                { 
+                    Values = speedValues, 
+                    Name = "Vitesse", 
+                    Stroke = new SolidColorPaint(SKColors.Cyan, 2),
+                    GeometrySize = 0,
+                    Fill = null
+                } 
             };
-
-            AngleSeries = new ISeries[]
-            {
-                new LineSeries<double>
-                {
-                    Values = angles,
-                    Name = "Angle (°)",
-                    Fill = null,
-                    Stroke = new SolidColorPaint(SKColors.OrangeRed) { StrokeThickness = 3 },
-                    GeometrySize = 0
-                }
+            
+            AngleSeries = new ISeries[] 
+            { 
+                new LineSeries<double> 
+                { 
+                    Values = angleValues, 
+                    Name = "Angle", 
+                    Stroke = new SolidColorPaint(SKColors.Yellow, 2),
+                    GeometrySize = 0,
+                    Fill = null
+                } 
             };
         }
 
@@ -121,6 +275,80 @@ namespace Analyzer.ViewModels
                     GeometrySize = 0
                 }
             };
+        }
+        private void UpdateTrajectoryUI(TrackMap map)
+        {
+            if (map.Trajectory.Count == 0) return;
+
+            double minLat = map.Trajectory.Min(p => p.Latitude);
+            double maxLat = map.Trajectory.Max(p => p.Latitude);
+            double minLon = map.Trajectory.Min(p => p.Longitude);
+            double maxLon = map.Trajectory.Max(p => p.Longitude);
+
+            double latRange = maxLat - minLat;
+            double lonRange = maxLon - minLon;
+
+            // Protection division par zéro
+            if (latRange == 0) latRange = 0.0001;
+            if (lonRange == 0) lonRange = 0.0001;
+
+            double canvasWidth = 300; // Taille virtuelle pour le binding
+            double canvasHeight = 300;
+
+            // On garde l'aspect ratio
+            double ratio = Math.Cos(minLat * Math.PI / 180.0);
+            double scaleLat = canvasHeight / latRange;
+            double scaleLon = canvasWidth / (lonRange * ratio);
+            double scale = Math.Min(scaleLat, scaleLon) * 0.8; // 80% du canvas
+
+            var points = new System.Windows.Media.PointCollection();
+            foreach (var p in map.Trajectory)
+            {
+                // Inversion Y car en UI 0 est en haut
+                double x = (p.Longitude - minLon) * ratio * scale + (canvasWidth / 10);
+                double y = canvasHeight - ((p.Latitude - minLat) * scale + (canvasHeight / 10));
+                points.Add(new System.Windows.Point(x, y));
+            }
+
+            TrajectoryPoints = points;
+        }
+
+        private string? FindMatchingMap(string sessionFilePath)
+        {
+            string sessionDir = System.IO.Path.GetDirectoryName(sessionFilePath) ?? "";
+            string sessionFolderName = System.IO.Path.GetFileName(sessionDir); // e.g. LEDENON-2026-04-12
+            
+            // Extract circuit name and normalize
+            string circuitSearch = NormalizeString(sessionFolderName.Split('-')[0]);
+
+            string mapsRoot = @"C:\dev\3DMS-CED\Map\Circuits";
+            if (!System.IO.Directory.Exists(mapsRoot)) return null;
+
+            foreach (var countryDir in System.IO.Directory.GetDirectories(mapsRoot))
+            {
+                foreach (var mapFile in System.IO.Directory.GetFiles(countryDir, "*.map"))
+                {
+                    string mapName = NormalizeString(System.IO.Path.GetFileNameWithoutExtension(mapFile));
+                    // Check for overlap
+                    if (mapName.Contains(circuitSearch) || circuitSearch.Contains(mapName))
+                    {
+                        return mapFile;
+                    }
+                }
+            }
+            return null;
+        }
+
+        private string NormalizeString(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+            
+            // Remove accents and set to lower
+            return new string(text.Normalize(System.Text.NormalizationForm.FormD)
+                .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+                .ToArray())
+                .Normalize(System.Text.NormalizationForm.FormC)
+                .ToLower();
         }
     }
 }

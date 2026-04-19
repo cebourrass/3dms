@@ -12,6 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="DotNetProjects.AvalonDock" Version="3.2.59" />
     <PackageReference Include="ModernWpfUI" Version="0.9.6" />
     <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.0-rc2" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
