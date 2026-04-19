@@ -236,13 +236,33 @@ namespace Analyzer.ViewModels
                 var calculatedLaps = _lapService.CalculateLaps(points, session.CircuitMap);
                 if (calculatedLaps.Any())
                 {
-                    // Highlights
-                    if (calculatedLaps.Any(l => l.Type == "Complet"))
+                    // Seuls les tours complets comptent pour les records
+                    var completeLaps = calculatedLaps.Where(l => l.Type == "Complet").ToList();
+                    
+                    if (completeLaps.Any())
                     {
-                        var best = calculatedLaps.Where(l => l.Type == "Complet").OrderBy(l => l.LapTime).First();
+                        var best = completeLaps.OrderBy(l => l.LapTimeMs).First();
                         best.IsBestLap = true;
                         session.BestLapTime = best.LapTime;
                         BestLapTime = best.LapTime;
+
+                        // Calcul du Temps Idéal (somme des meilleurs secteurs de tous les tours complets)
+                        double idealMs = 0;
+                        int numSectors = session.PartialCount;
+                        if (numSectors > 0)
+                        {
+                            for (int s = 0; s < numSectors; s++)
+                            {
+                                // On cherche le min pour ce secteur s parmi les tours complets
+                                var bestSectorMs = completeLaps
+                                    .Select(l => ParseTimeToMs(l.Partials[s]))
+                                    .Where(ms => ms > 0)
+                                    .DefaultIfEmpty(0)
+                                    .Min();
+                                idealMs += bestSectorMs;
+                            }
+                            IdealLapTime = FormatTimeFromMs(idealMs);
+                        }
                     }
 
                     var maxSpd = calculatedLaps.Max(l => l.MaxSpeed);
@@ -395,6 +415,26 @@ namespace Analyzer.ViewModels
                 .ToArray())
                 .Normalize(System.Text.NormalizationForm.FormC)
                 .ToLower();
+        }
+        private double ParseTimeToMs(string timeStr)
+        {
+            if (string.IsNullOrEmpty(timeStr) || timeStr == "-") return 0;
+            try
+            {
+                var parts = timeStr.Split(':');
+                if (parts.Length < 2) return 0;
+                
+                double minutes = double.Parse(parts[0]);
+                double seconds = double.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture);
+                return (minutes * 60 + seconds) * 1000.0;
+            }
+            catch { return 0; }
+        }
+
+        private string FormatTimeFromMs(double ms)
+        {
+            TimeSpan t = TimeSpan.FromMilliseconds(ms);
+            return string.Format("{0:D2}:{1:D2}.{2:D2}", t.Minutes, t.Seconds, t.Milliseconds / 10);
         }
     }
 }

@@ -90,10 +90,15 @@
                     <StackPanel Grid.Column="0">
                         <TextBlock Text="{Binding SessionTitle}" Style="{StaticResource HeaderTextBlockStyle}" Foreground="{DynamicResource SystemControlHighlightAccentBrush}"/>
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                            <Border Background="#007acc" CornerRadius="10" Padding="8,2" Margin="0,0,12,0">
+                            <Border Background="#007acc" CornerRadius="10" Padding="8,2" Margin="0,0,8,0">
                                 <TextBlock Text="{Binding BestLapTime}" Foreground="White" FontWeight="Bold"/>
                             </Border>
-                            <TextBlock Text="Meilleur Tour de la Session" VerticalAlignment="Center" Opacity="0.7"/>
+                            <TextBlock Text="Meilleur Tour" VerticalAlignment="Center" Opacity="0.7" Margin="0,0,24,0"/>
+
+                            <Border Background="#2d2d2d" CornerRadius="10" BorderBrush="#007acc" BorderThickness="1" Padding="8,2" Margin="0,0,8,0">
+                                <TextBlock Text="{Binding IdealLapTime}" Foreground="#007acc" FontWeight="Bold"/>
+                            </Border>
+                            <TextBlock Text="Temps Idéal" VerticalAlignment="Center" Opacity="0.7"/>
                         </StackPanel>
                     </StackPanel>
                     <Button Grid.Column="1" Content="Ouvrir une session..." Click="OpenSession_Click" ui:ControlHelper.PlaceholderText="Charger un fichier .ra1"/>

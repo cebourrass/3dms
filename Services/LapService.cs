@@ -90,6 +90,7 @@ namespace Analyzer.Services
             for (int i = 0; i < partialCount; i++) lap.Partials[i] = "-";
 
             double previousTimeMs = startTimeMs;
+            bool allPartialsFound = true;
 
             for (int pIdx = 0; pIdx < partialMarkers.Count; pIdx++)
             {
@@ -114,16 +115,31 @@ namespace Analyzer.Services
                     lap.Partials[pIdx] = FormatTime((long)splitDuration);
                     previousTimeMs = exactSplitTimeMs;
                 }
+                else
+                {
+                    allPartialsFound = false;
+                }
             }
 
             // DERNIER SECTEUR
-            if (lap.Type == "Complet")
+            if (!isPartial)
             {
                 double lastSplitMs = endTimeMs - previousTimeMs;
                 if (partialMarkers.Count < partialCount)
                 {
                     lap.Partials[partialMarkers.Count] = FormatTime((long)lastSplitMs);
                 }
+            }
+
+            // Validation finale : un tour n'est complet que si on a tout franchi et qu'il n'est pas marqué partial
+            if (isPartial || !allPartialsFound)
+            {
+                lap.Type = "Incomplet";
+                if (isPartial) lap.LapTime = "-";
+            }
+            else
+            {
+                lap.Type = "Complet";
             }
 
             laps.Add(lap);
