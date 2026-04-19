@@ -30,15 +30,22 @@
                 </Grid.RowDefinitions>
 
                 <!-- Header -->
-                <StackPanel Grid.Row="0" Margin="0,0,0,24">
-                    <TextBlock Text="Lédenon - 12/04/2026" Style="{StaticResource HeaderTextBlockStyle}" Foreground="{DynamicResource SystemControlHighlightAccentBrush}"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                        <Border Background="#007acc" CornerRadius="10" Padding="8,2" Margin="0,0,12,0">
-                            <TextBlock Text="01:50.96" Foreground="White" FontWeight="Bold"/>
-                        </Border>
-                        <TextBlock Text="Meilleur Tour Personnel" VerticalAlignment="Center" Opacity="0.7"/>
+                <Grid Grid.Row="0" Margin="0,0,0,24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Lédenon - 12/04/2026" Style="{StaticResource HeaderTextBlockStyle}" Foreground="{DynamicResource SystemControlHighlightAccentBrush}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <Border Background="#007acc" CornerRadius="10" Padding="8,2" Margin="0,0,12,0">
+                                <TextBlock Text="01:50.96" Foreground="White" FontWeight="Bold"/>
+                            </Border>
+                            <TextBlock Text="Meilleur Tour Personnel" VerticalAlignment="Center" Opacity="0.7"/>
+                        </StackPanel>
                     </StackPanel>
-                </StackPanel>
+                    <Button Grid.Column="1" Content="Ouvrir une session..." Click="OpenSession_Click" ui:ControlHelper.PlaceholderText="Charger un fichier .ra1"/>
+                </Grid>
 
                 <!-- Content Area -->
                 <UniformGrid Grid.Row="1" Columns="2">
