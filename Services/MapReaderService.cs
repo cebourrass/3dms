@@ -6,19 +6,6 @@ using Analyzer.Models;
 
 namespace Analyzer.Services
 {
-    public class TrackMap
-    {
-        public string Name { get; set; }
-        public List<GpsPoint> Trajectory { get; set; } = new List<GpsPoint>();
-        public Dictionary<string, GpsPoint> Markers { get; set; } = new Dictionary<string, GpsPoint>();
-    }
-
-    public class GpsPoint
-    {
-        public double Latitude { get; set; }
-        public double Longitude { get; set; }
-    }
-
     public class MapReaderService
     {
         public TrackMap ReadMap(string filePath)

@@ -159,11 +159,39 @@ namespace Analyzer.ViewModels
             set => SetProperty(ref _sessionTitle, value);
         }
 
+        private SessionData? _currentSession;
+        public SessionData? CurrentSession
+        {
+            get => _currentSession;
+            set 
+            {
+                if (SetProperty(ref _currentSession, value))
+                {
+                    OnPropertyChanged(nameof(IsP1Visible));
+                    OnPropertyChanged(nameof(IsP2Visible));
+                    OnPropertyChanged(nameof(IsP3Visible));
+                    OnPropertyChanged(nameof(IsP4Visible));
+                }
+            }
+        }
+
+        public bool IsP1Visible => CurrentSession?.PartialCount >= 1;
+        public bool IsP2Visible => CurrentSession?.PartialCount >= 2;
+        public bool IsP3Visible => CurrentSession?.PartialCount >= 3;
+        public bool IsP4Visible => CurrentSession?.PartialCount >= 4;
+
         private string _bestLapTime = "--:--.--";
         public string BestLapTime
         {
             get => _bestLapTime;
             set => SetProperty(ref _bestLapTime, value);
+        }
+
+        private string _idealLapTime = "--:--.--";
+        public string IdealLapTime
+        {
+            get => _idealLapTime;
+            set => SetProperty(ref _idealLapTime, value);
         }
 
         [RelayCommand]
@@ -172,12 +200,24 @@ namespace Analyzer.ViewModels
             var points = _readerService.ReadFile(filePath);
             if (points == null || !points.Any()) return;
 
-            // Try to find a matching map
-            string sessionName = System.IO.Path.GetFileNameWithoutExtension(filePath);
+            var session = new SessionData
+            {
+                Title = System.IO.Path.GetFileNameWithoutExtension(filePath),
+                FilePath = filePath,
+                AllPoints = points
+            };
+
             string? mapFile = FindMatchingMap(filePath);
             if (mapFile != null)
             {
-                CurrentMap = _mapReaderService.ReadMap(mapFile);
+                session.MapFilePath = mapFile;
+                session.CircuitMap = _mapReaderService.ReadMap(mapFile);
+                
+                // Le nombre de secteurs est le nombre de marqueurs Time + 1 (pour rejoindre l'arrivée)
+                int markerTimes = session.CircuitMap.Markers.Keys.Count(k => k.StartsWith("Time", StringComparison.OrdinalIgnoreCase));
+                session.PartialCount = markerTimes > 0 ? markerTimes + 1 : 0;
+                
+                CurrentMap = session.CircuitMap;
                 CircuitName = CurrentMap.Name;
                 UpdateTrajectoryUI(CurrentMap);
             }
@@ -187,33 +227,39 @@ namespace Analyzer.ViewModels
                 TrajectoryPoints = new System.Windows.Media.PointCollection();
             }
 
-            // Update Header Info
-            SessionTitle = System.IO.Path.GetFileNameWithoutExtension(filePath);
+            SessionTitle = session.Title;
             Laps.Clear();
             
             // Calcul des tours réels
-            if (CurrentMap != null)
+            if (session.CircuitMap != null)
             {
-                var calculatedLaps = _lapService.CalculateLaps(points, CurrentMap);
+                var calculatedLaps = _lapService.CalculateLaps(points, session.CircuitMap);
                 if (calculatedLaps.Any())
                 {
-                    foreach (var lap in calculatedLaps)
+                    // Highlights
+                    if (calculatedLaps.Any(l => l.Type == "Complet"))
                     {
-                        Laps.Add(lap);
+                        var best = calculatedLaps.Where(l => l.Type == "Complet").OrderBy(l => l.LapTime).First();
+                        best.IsBestLap = true;
+                        session.BestLapTime = best.LapTime;
+                        BestLapTime = best.LapTime;
                     }
+
+                    var maxSpd = calculatedLaps.Max(l => l.MaxSpeed);
+                    foreach (var l in calculatedLaps.Where(lap => lap.MaxSpeed == maxSpd)) l.IsMaxSpeed = true;
+                    session.MaxSpeed = maxSpd;
+
+                    var maxAng = calculatedLaps.Max(l => Math.Max(l.MaxLeanLeft, l.MaxLeanRight));
+                    foreach (var l in calculatedLaps.Where(lap => lap.MaxLeanLeft == maxAng || lap.MaxLeanRight == maxAng)) l.IsMaxAngle = true;
+                    session.MaxLeanLeft = calculatedLaps.Max(l => l.MaxLeanLeft);
+                    session.MaxLeanRight = calculatedLaps.Max(l => l.MaxLeanRight);
                     
-                    var best = calculatedLaps.Where(l => l.Type == "Complet").OrderBy(l => l.LapTime).FirstOrDefault();
-                    if (best != null) BestLapTime = best.LapTime;
-                }
-                else
-                {
-                    Laps.Add(new LapData { Number = 1, Type = "Pas de tours", CumulativeTime = "00:00.00", MaxSpeed = points.Max(p => p.Speed) });
+                    session.Laps = calculatedLaps;
+                    foreach (var lap in calculatedLaps) Laps.Add(lap);
                 }
             }
-            else
-            {
-                Laps.Add(new LapData { Number = 1, Type = "Circuit ?", CumulativeTime = "00:00.00", MaxSpeed = points.Max(p => p.Speed) });
-            }
+            
+            CurrentSession = session;
 
             // On ne prend qu'un point sur 2 pour l'affichage (10Hz -> 5Hz)
             var displayPoints = points.Where((p, i) => i % 2 == 0).ToList();

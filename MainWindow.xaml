@@ -10,10 +10,41 @@
         xmlns:Models="clr-namespace:Analyzer.Models"
         mc:Ignorable="d"
         ui:WindowHelper.UseModernWindowStyle="True"
+        ui:ThemeManager.RequestedTheme="Dark"
         Title="3DMS Pro Analyzer" Height="800" Width="1200"
-        Background="{DynamicResource SystemControlPageBackgroundAltHighBrush}">
+        Background="#1e1e1e">
     
     <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <!-- Grid Styles -->
+        <Style x:Key="BestLapRowStyle" TargetType="DataGridRow" BasedOn="{StaticResource DefaultDataGridRowStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsBestLap}" Value="True">
+                    <Setter Property="Background" Value="#005a9e"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="MaxHighlightCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource DefaultDataGridCellStyle}">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsMaxSpeed}" Value="True">
+                    <Setter Property="Foreground" Value="Cyan"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsMaxAngle}" Value="True">
+                    <Setter Property="Foreground" Value="Yellow"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="CenterAlignedCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource DefaultDataGridCellStyle}">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+
         <HierarchicalDataTemplate DataType="{x:Type Models:FolderItem}" ItemsSource="{Binding Children}">
             <StackPanel Orientation="Horizontal">
                 <ui:SymbolIcon Symbol="Folder" Margin="0,0,8,0"/>
@@ -76,35 +107,41 @@
                                 <!-- Laps View Panel -->
                                 <dock:LayoutAnchorablePane>
                                     <dock:LayoutAnchorable ContentId="LapsPane" Title="Tableau des Tours" CanClose="False">
-                                        <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
-                                            <DataGrid ItemsSource="{Binding Laps}" AutoGenerateColumns="False" 
-                                                      Background="Transparent" BorderThickness="0" CanUserAddRows="False"
-                                                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                                                      HorizontalGridLinesBrush="#333" RowBackground="Transparent">
-                                                <DataGrid.Columns>
-                                                    <DataGridTextColumn Header="Tour" Binding="{Binding Number}" Width="50"/>
-                                                    <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="80"/>
-                                                    <DataGridTextColumn Header="Cumulé" Binding="{Binding CumulativeTime}" Width="100"/>
-                                                    <DataGridTextColumn Header="Temps" Binding="{Binding LapTime}" Width="100">
-                                                        <DataGridTextColumn.ElementStyle>
-                                                            <Style TargetType="TextBlock">
-                                                                <Setter Property="FontWeight" Value="Bold"/>
-                                                                <Setter Property="Foreground" Value="Yellow"/>
-                                                            </Style>
-                                                        </DataGridTextColumn.ElementStyle>
-                                                    </DataGridTextColumn>
-                                                    <DataGridTextColumn Header="Vmax" Binding="{Binding MaxSpeed, StringFormat={}{0:F0} km/h}" Width="80"/>
-                                                    <DataGridTextColumn Header="Vmin" Binding="{Binding MinSpeed, StringFormat={}{0:F0} km/h}" Width="80"/>
-                                                    <DataGridTextColumn Header="Gauch" Binding="{Binding MaxLeanLeft, StringFormat={}{0:F0}°}" Width="60"/>
-                                                    <DataGridTextColumn Header="Droit" Binding="{Binding MaxLeanRight, StringFormat={}{0:F0}°}" Width="60"/>
-                                                    <DataGridTextColumn Header="Accel" Binding="{Binding MaxAccel, StringFormat={}{0:F2} g}" Width="60"/>
-                                                    <DataGridTextColumn Header="Decel" Binding="{Binding MaxDecel, StringFormat={}{0:F2} g}" Width="60"/>
-                                                    <DataGridTextColumn Header="P1" Binding="{Binding Partials[0]}" Width="80"/>
-                                                    <DataGridTextColumn Header="P2" Binding="{Binding Partials[1]}" Width="80"/>
-                                                    <DataGridTextColumn Header="P3" Binding="{Binding Partials[2]}" Width="80"/>
-                                                </DataGrid.Columns>
-                                            </DataGrid>
-                                        </Border>
+                                        <DataGrid ItemsSource="{Binding Laps}" AutoGenerateColumns="False" 
+                                                  IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
+                                                  CanUserReorderColumns="False" CanUserResizeRows="False"
+                                                  Background="Transparent" BorderThickness="0" SelectionMode="Single"
+                                                  RowStyle="{StaticResource BestLapRowStyle}"
+                                                  HorizontalGridLinesBrush="#333" GridLinesVisibility="Horizontal"
+                                                  HeadersVisibility="Column" RowBackground="Transparent">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Tour" Binding="{Binding Number}" Width="50" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
+                                                <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="80"/>
+                                                <DataGridTextColumn Header="Cumulé" Binding="{Binding CumulativeTime}" Width="90" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
+                                                <DataGridTextColumn Header="Temps" Binding="{Binding LapTime}" Width="90" CellStyle="{StaticResource CenterAlignedCellStyle}">
+                                                    <DataGridTextColumn.ElementStyle>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="FontWeight" Value="Bold"/>
+                                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                                        </Style>
+                                                    </DataGridTextColumn.ElementStyle>
+                                                </DataGridTextColumn>
+                                                <DataGridTextColumn Header="Vmax" Binding="{Binding MaxSpeed, StringFormat={}{0:F0} km/h}" Width="85" CellStyle="{StaticResource MaxHighlightCellStyle}"/>
+                                                <DataGridTextColumn Header="Vmin" Binding="{Binding MinSpeed, StringFormat={}{0:F0} km/h}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
+                                                <DataGridTextColumn Header="Gauch" Binding="{Binding MaxLeanLeft, StringFormat={}{0:F0}°}" Width="65" CellStyle="{StaticResource MaxHighlightCellStyle}"/>
+                                                <DataGridTextColumn Header="Droit" Binding="{Binding MaxLeanRight, StringFormat={}{0:F0}°}" Width="65" CellStyle="{StaticResource MaxHighlightCellStyle}"/>
+                                                <DataGridTextColumn Header="Accel" Binding="{Binding MaxAccel, StringFormat={}{0:F2} g}" Width="65" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
+                                                <DataGridTextColumn Header="Decel" Binding="{Binding MaxDecel, StringFormat={}{0:F2} g}" Width="65" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
+                                                <DataGridTextColumn Header="P1" Binding="{Binding Partials[0]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}" 
+                                                                    Visibility="{Binding DataContext.IsP1Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                <DataGridTextColumn Header="P2" Binding="{Binding Partials[1]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"
+                                                                    Visibility="{Binding DataContext.IsP2Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                <DataGridTextColumn Header="P3" Binding="{Binding Partials[2]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"
+                                                                    Visibility="{Binding DataContext.IsP3Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                <DataGridTextColumn Header="P4" Binding="{Binding Partials[3]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"
+                                                                    Visibility="{Binding DataContext.IsP4Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
                                     </dock:LayoutAnchorable>
                                 </dock:LayoutAnchorablePane>
 

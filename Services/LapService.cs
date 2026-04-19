@@ -45,7 +45,7 @@ namespace Analyzer.Services
                     // On vient de sortir de la zone de franchissement
                     if (bestIndexInZone != -1)
                     {
-                        AddLap(laps, points, lastCrossingIndex, bestIndexInZone, currentLapNumber++);
+                        AddLap(laps, points, lastCrossingIndex, bestIndexInZone, currentLapNumber++, map);
                         lastCrossingIndex = bestIndexInZone;
                     }
                     inZone = false;
@@ -57,13 +57,13 @@ namespace Analyzer.Services
             // Dernier tour incomplet
             if (lastCrossingIndex < points.Count - 1)
             {
-                AddLap(laps, points, lastCrossingIndex, points.Count - 1, currentLapNumber, isPartial: true);
+                AddLap(laps, points, lastCrossingIndex, points.Count - 1, currentLapNumber, map, isPartial: true);
             }
 
             return laps;
         }
 
-        private void AddLap(List<LapData> laps, List<TelemetryPoint> allPoints, int startIndex, int endIndex, int number, bool isPartial = false)
+        private void AddLap(List<LapData> laps, List<TelemetryPoint> allPoints, int startIndex, int endIndex, int number, TrackMap map, bool isPartial = false)
         {
             var lapPoints = allPoints.GetRange(startIndex, endIndex - startIndex + 1);
             if (lapPoints.Count == 0) return;
@@ -83,8 +83,56 @@ namespace Analyzer.Services
                 MaxLeanRight = lapPoints.Max(p => p.LeanAngle > 0 ? p.LeanAngle : 0),
                 MaxAccel = lapPoints.Max(p => p.Acceleration),
                 MaxDecel = Math.Abs(lapPoints.Min(p => p.Acceleration)),
-                Partials = new string[] { "-", "-", "-" } // À implémenter avec les marqueurs Time0/1/2
             };
+
+            // Détection des Partiels (P1, P2...)
+            var partialMarkers = map.Markers
+                .Where(m => m.Key.StartsWith("Time", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(m => m.Key)
+                .ToList();
+
+            // On Dimensionne à au moins 4 pour le DataGrid (P1 à P4), ou plus si nécessaire
+            int partialCount = Math.Max(4, partialMarkers.Count + 1);
+            lap.Partials = new string[partialCount];
+            for (int i = 0; i < partialCount; i++) lap.Partials[i] = "-";
+
+            long previousTime = allPoints[startIndex].Time;
+
+            for (int pIdx = 0; pIdx < partialMarkers.Count; pIdx++)
+            {
+                var marker = partialMarkers[pIdx].Value;
+                double minDist = double.MaxValue;
+                int bestIdx = -1;
+
+                for (int i = 0; i < lapPoints.Count; i++)
+                {
+                    double d = CalculateDistance(lapPoints[i].Latitude, lapPoints[i].Longitude, marker.Latitude, marker.Longitude);
+                    if (d < minDist)
+                    {
+                        minDist = d;
+                        bestIdx = i;
+                    }
+                }
+
+                if (bestIdx != -1 && minDist < CrossingThresholdMeters)
+                {
+                    long currentTime = lapPoints[bestIdx].Time;
+                    long splitMs = currentTime - previousTime;
+                    lap.Partials[pIdx] = FormatTime(splitMs);
+                    previousTime = currentTime;
+                }
+            }
+
+            // DERNIER SECTEUR : Du dernier marqueur Time jusqu'à la fin (Ligne d'arrivée)
+            if (lap.Type == "Complet")
+            {
+                long finishTime = allPoints[endIndex].Time;
+                long lastSplitMs = finishTime - previousTime;
+                if (partialMarkers.Count < partialCount)
+                {
+                    lap.Partials[partialMarkers.Count] = FormatTime(lastSplitMs);
+                }
+            }
 
             laps.Add(lap);
         }
