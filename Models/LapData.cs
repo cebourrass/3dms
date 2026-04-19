@@ -1,13 +1,19 @@
 using System;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Analyzer.Models
 {
-    public class LapData : CommunityToolkit.Mvvm.ComponentModel.ObservableObject
+    public class LapData : ObservableObject
     {
         public int Number { get; set; }
         public string Type { get; set; }
         public string CumulativeTime { get; set; }
         public string LapTime { get; set; }
+        
+        // Données précises pour l'interpolation
+        public double StartTimeMs { get; set; }
+        public double LapTimeMs { get; set; }
+
         public double MaxSpeed { get; set; }
         public double MinSpeed { get; set; }
         public double MaxLeanLeft { get; set; }

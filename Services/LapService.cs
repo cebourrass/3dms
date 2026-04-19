@@ -20,63 +20,57 @@ namespace Analyzer.Services
 
             var startPoint = map.Markers[startKey];
             int currentLapNumber = 1;
+            double lastCrossingTimeMs = points[0].Time;
             int lastCrossingIndex = 0;
             
-            bool inZone = false;
-            double minDistInZone = double.MaxValue;
-            int bestIndexInZone = -1;
-
-            for (int i = 0; i < points.Count; i++)
+            for (int i = 1; i < points.Count; i++)
             {
-                var p = points[i];
-                double dist = CalculateDistance(p.Latitude, p.Longitude, startPoint.Latitude, startPoint.Longitude);
+                var p1 = points[i - 1];
+                var p2 = points[i];
+                
+                double d1 = CalculateDistance(p1.Latitude, p1.Longitude, startPoint.Latitude, startPoint.Longitude);
+                double d2 = CalculateDistance(p2.Latitude, p2.Longitude, startPoint.Latitude, startPoint.Longitude);
 
-                if (dist < CrossingThresholdMeters)
+                // Détection de passage : on est passé au plus près du marqueur
+                // On utilise une détection de "passage au zenith" (passage par le point de distance minimale)
+                // ou simplement si on est dans la zone et que la distance commence à remonter.
+                if (d1 < CrossingThresholdMeters && d2 > d1 && i > lastCrossingIndex + 50) 
                 {
-                    inZone = true;
-                    if (dist < minDistInZone)
-                    {
-                        minDistInZone = dist;
-                        bestIndexInZone = i;
-                    }
-                }
-                else if (inZone)
-                {
-                    // On vient de sortir de la zone de franchissement
-                    if (bestIndexInZone != -1)
-                    {
-                        AddLap(laps, points, lastCrossingIndex, bestIndexInZone, currentLapNumber++, map);
-                        lastCrossingIndex = bestIndexInZone;
-                    }
-                    inZone = false;
-                    minDistInZone = double.MaxValue;
-                    bestIndexInZone = -1;
+                    // Interpolation temporelle exacte
+                    double exactTime = GetInterpolatedTime(p1, p2, startPoint);
+                    
+                    AddLap(laps, points, lastCrossingIndex, i-1, currentLapNumber++, map, exactTime, lastCrossingTimeMs);
+                    
+                    lastCrossingTimeMs = exactTime;
+                    lastCrossingIndex = i-1;
                 }
             }
 
             // Dernier tour incomplet
             if (lastCrossingIndex < points.Count - 1)
             {
-                AddLap(laps, points, lastCrossingIndex, points.Count - 1, currentLapNumber, map, isPartial: true);
+                AddLap(laps, points, lastCrossingIndex, points.Count - 1, currentLapNumber, map, points.Last().Time, lastCrossingTimeMs, isPartial: true);
             }
 
             return laps;
         }
 
-        private void AddLap(List<LapData> laps, List<TelemetryPoint> allPoints, int startIndex, int endIndex, int number, TrackMap map, bool isPartial = false)
+        private void AddLap(List<LapData> laps, List<TelemetryPoint> allPoints, int startIndex, int endIndex, int number, TrackMap map, double endTimeMs, double startTimeMs, bool isPartial = false)
         {
             var lapPoints = allPoints.GetRange(startIndex, endIndex - startIndex + 1);
             if (lapPoints.Count == 0) return;
 
-            long durationMs = allPoints[endIndex].Time - allPoints[startIndex].Time;
-            long cumulativeMs = allPoints[endIndex].Time - allPoints[0].Time;
+            double durationMs = endTimeMs - startTimeMs;
+            double cumulativeMs = endTimeMs - allPoints[0].Time;
 
             var lap = new LapData
             {
                 Number = number,
                 Type = isPartial ? "Incomplet" : "Complet",
-                CumulativeTime = FormatTime(cumulativeMs),
-                LapTime = isPartial ? "-" : FormatTime(durationMs),
+                CumulativeTime = FormatTime((long)cumulativeMs),
+                LapTime = isPartial ? "-" : FormatTime((long)durationMs),
+                LapTimeMs = durationMs,
+                StartTimeMs = startTimeMs,
                 MaxSpeed = lapPoints.Max(p => p.Speed),
                 MinSpeed = lapPoints.Min(p => p.Speed),
                 MaxLeanLeft = lapPoints.Max(p => p.LeanAngle < 0 ? -p.LeanAngle : 0),
@@ -85,18 +79,17 @@ namespace Analyzer.Services
                 MaxDecel = Math.Abs(lapPoints.Min(p => p.Acceleration)),
             };
 
-            // Détection des Partiels (P1, P2...)
+            // Détection des Partiels (P1, P2...) avec Interpolation
             var partialMarkers = map.Markers
                 .Where(m => m.Key.StartsWith("Time", StringComparison.OrdinalIgnoreCase))
                 .OrderBy(m => m.Key)
                 .ToList();
 
-            // On Dimensionne à au moins 4 pour le DataGrid (P1 à P4), ou plus si nécessaire
             int partialCount = Math.Max(4, partialMarkers.Count + 1);
             lap.Partials = new string[partialCount];
             for (int i = 0; i < partialCount; i++) lap.Partials[i] = "-";
 
-            long previousTime = allPoints[startIndex].Time;
+            double previousTimeMs = startTimeMs;
 
             for (int pIdx = 0; pIdx < partialMarkers.Count; pIdx++)
             {
@@ -104,9 +97,9 @@ namespace Analyzer.Services
                 double minDist = double.MaxValue;
                 int bestIdx = -1;
 
-                for (int i = 0; i < lapPoints.Count; i++)
+                for (int i = startIndex; i <= endIndex - 1; i++)
                 {
-                    double d = CalculateDistance(lapPoints[i].Latitude, lapPoints[i].Longitude, marker.Latitude, marker.Longitude);
+                    double d = CalculateDistance(allPoints[i].Latitude, allPoints[i].Longitude, marker.Latitude, marker.Longitude);
                     if (d < minDist)
                     {
                         minDist = d;
@@ -116,21 +109,20 @@ namespace Analyzer.Services
 
                 if (bestIdx != -1 && minDist < CrossingThresholdMeters)
                 {
-                    long currentTime = lapPoints[bestIdx].Time;
-                    long splitMs = currentTime - previousTime;
-                    lap.Partials[pIdx] = FormatTime(splitMs);
-                    previousTime = currentTime;
+                    double exactSplitTimeMs = GetInterpolatedTime(allPoints[bestIdx], allPoints[bestIdx+1], marker);
+                    double splitDuration = exactSplitTimeMs - previousTimeMs;
+                    lap.Partials[pIdx] = FormatTime((long)splitDuration);
+                    previousTimeMs = exactSplitTimeMs;
                 }
             }
 
-            // DERNIER SECTEUR : Du dernier marqueur Time jusqu'à la fin (Ligne d'arrivée)
+            // DERNIER SECTEUR
             if (lap.Type == "Complet")
             {
-                long finishTime = allPoints[endIndex].Time;
-                long lastSplitMs = finishTime - previousTime;
+                double lastSplitMs = endTimeMs - previousTimeMs;
                 if (partialMarkers.Count < partialCount)
                 {
-                    lap.Partials[partialMarkers.Count] = FormatTime(lastSplitMs);
+                    lap.Partials[partialMarkers.Count] = FormatTime((long)lastSplitMs);
                 }
             }
 
@@ -146,6 +138,37 @@ namespace Analyzer.Services
                        Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
             double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
             return EarthRadiusKm * c * 1000.0; // En mètres
+        }
+
+        private double GetInterpolatedTime(TelemetryPoint p1, TelemetryPoint p2, GpsPoint marker)
+        {
+            // Calcul de la distance au marqueur pour les deux points
+            double d1 = CalculateDistance(p1.Latitude, p1.Longitude, marker.Latitude, marker.Longitude);
+            double d2 = CalculateDistance(p2.Latitude, p2.Longitude, marker.Latitude, marker.Longitude);
+
+            // Si les distances sont identiques (rare), on prend le milieu
+            if (Math.Abs(d1 + d2) < 0.000001) return p1.Time;
+
+            // Interpolation de base (fraction de temps basée sur la distance)
+            double fraction = d1 / (d1 + d2);
+
+            // Prise en compte de l'accélération pour affiner la position temporelle
+            // Si a > 0, on met un peu plus de temps à parcourir la première partie du segment
+            double accelG = (p1.Acceleration + p2.Acceleration) / 2.0;
+            double accelMs2 = accelG * 9.81;
+            
+            // Correction quadratique simple du temps
+            double deltaTimeMs = p2.Time - p1.Time;
+            double correction = 0;
+            
+            if (Math.Abs(accelMs2) > 0.1)
+            {
+                // On ajuste légèrement la fraction selon si on accélère ou freine
+                // C'est une approximation cinématique : t = t1 + dt * fraction + correction_accel
+                correction = -0.5 * accelMs2 * (deltaTimeMs / 1000.0) * fraction * (1.0 - fraction);
+            }
+
+            return p1.Time + (deltaTimeMs * fraction) + (correction * 1000.0);
         }
 
         private double ToRadians(double deg) => deg * Math.PI / 180.0;
