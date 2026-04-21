@@ -22,6 +22,7 @@ namespace Analyzer.ViewModels
         public string Color { get; set; } = "#FFFFFF";
         public double Thickness { get; set; } = 1.5;
         public bool IsReference { get; set; }
+        public double SortTimeMs { get; set; }
     }
 
     public class CircuitMetadata
@@ -862,7 +863,8 @@ namespace Analyzer.ViewModels
                     Label = $"T{lap.Number}", 
                     LapTime = lap.LapTime, 
                     Color = hexColor, 
-                    Thickness = thickness 
+                    Thickness = thickness,
+                    SortTimeMs = lap.LapTimeMs
                 });
                 
                 comparisonIndex++;
@@ -876,7 +878,13 @@ namespace Analyzer.ViewModels
             float sThickness = (float)(CompFastThickness + (sFactor * (CompSlowThickness - CompFastThickness)));
             
             AddLapSeries(seriesList, SelectedLap, null, sThickness, null); 
-            LegendEntries.Add(new LegendEntry { Label = selectedLabel, LapTime = selectedTime, Color = SpeedColor, Thickness = sThickness });
+            LegendEntries.Add(new LegendEntry { 
+                Label = selectedLabel, 
+                LapTime = selectedTime, 
+                Color = SpeedColor, 
+                Thickness = sThickness,
+                SortTimeMs = SelectedLap.LapTimeMs
+            });
 
             // 2. Référence Globale - Calcul d'épaisseur dynamique
             if (ShowReference && _cachedReferencePoints != null)
@@ -890,8 +898,20 @@ namespace Analyzer.ViewModels
                 AddLapSeries(seriesList, null, null, rThickness, SKColor.Parse(RefColor), true);
                 
                 // Libellé propre
-                LegendEntries.Add(new LegendEntry { Label = "[REF]", LapTime = _cachedReferenceTime, Color = RefColor, Thickness = (double)rThickness, IsReference = true });
+                LegendEntries.Add(new LegendEntry { 
+                    Label = "[REF]", 
+                    LapTime = _cachedReferenceTime, 
+                    Color = RefColor, 
+                    Thickness = (double)rThickness, 
+                    IsReference = true,
+                    SortTimeMs = ReferenceLap?.LapTimeMs ?? 0 
+                });
             }
+
+            // --- TRI DE LA LÉGENDE (Plus rapide au plus lent) ---
+            var sortedList = LegendEntries.OrderBy(e => e.SortTimeMs).ToList();
+            LegendEntries.Clear();
+            foreach (var entry in sortedList) LegendEntries.Add(entry);
 
             TelemetrySeries = seriesList.ToArray();
 

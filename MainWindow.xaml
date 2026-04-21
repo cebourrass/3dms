@@ -365,8 +365,8 @@
                                                 <StackPanel Margin="0,0,0,12">
                                                     <TextBlock Text="Notes :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
                                                     <TextBox Text="{Binding SessionNotes, UpdateSourceTrigger=PropertyChanged}" 
-                                                             TextWrapping="Wrap" AcceptsReturn="True" MinHeight="80" MaxHeight="150" VerticalContentAlignment="Top"
-                                                             ui:ControlHelper.PlaceholderText="Pressions, réglages..."/>
+                                                              TextWrapping="Wrap" AcceptsReturn="True" MinHeight="80" MaxHeight="150" VerticalContentAlignment="Top"
+                                                              ui:ControlHelper.PlaceholderText="Pressions, réglages..."/>
                                                 </StackPanel>
                                             </StackPanel>
                                         </ScrollViewer>
@@ -399,52 +399,49 @@
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <!-- Toggles -->
-                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10,5">
-                                            <CheckBox Content="Vitesse" IsChecked="{Binding ShowSpeed}" Foreground="Cyan" Margin="0,0,20,0"/>
-                                            <CheckBox Content="Angle" IsChecked="{Binding ShowAngle}" Foreground="Yellow" Margin="0,0,20,0"/>
-                                            <CheckBox Content="G (Accel)" IsChecked="{Binding ShowAccel}" Foreground="Magenta" Margin="0,0,20,0"/>
-                                            <Rectangle Width="1" Height="16" Fill="#444" Margin="0,0,20,0"/>
-                                            <CheckBox Content="RÉFÉRENCE" IsChecked="{Binding ShowReference}" Foreground="White" FontWeight="Bold"/>
-                                        </StackPanel>
+                                        <!-- Toggles and Dynamic Legend (Compact Top Row) -->
+                                        <Grid Grid.Row="0" Margin="10,5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <CheckBox Content="Vitesse" IsChecked="{Binding ShowSpeed}" Foreground="Cyan" Margin="0,0,15,0"/>
+                                                <CheckBox Content="Angle" IsChecked="{Binding ShowAngle}" Foreground="Yellow" Margin="0,0,15,0"/>
+                                                <CheckBox Content="G (Accel)" IsChecked="{Binding ShowAccel}" Foreground="Magenta" Margin="0,0,15,0"/>
+                                                <Rectangle Width="1" Height="16" Fill="#444" Margin="0,0,15,0"/>
+                                                <CheckBox Content="RÉFÉRENCE" IsChecked="{Binding ShowReference}" Foreground="White" FontWeight="Bold" Margin="0,0,15,0"/>
+                                                <Rectangle Width="1" Height="16" Fill="#444" Margin="0,0,15,0"/>
+                                            </StackPanel>
 
-                                        <!-- Main Combined Chart with Border optimized -->
-                                        <Border Grid.Row="1" BorderBrush="#334155" BorderThickness="1" CornerRadius="4" Margin="10">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <lvc:CartesianChart Grid.Column="0" 
-                                                                   Series="{Binding TelemetrySeries}" 
-                                                                   XAxes="{Binding XAxes}" 
-                                                                   YAxes="{Binding YAxes}" 
-                                                                   Sections="{Binding Sections}"
-                                                                   LegendPosition="Hidden"
-                                                                   MouseMove="Chart_PointerMove"
-                                                                   Margin="0"/>
-                                                <ItemsControl Grid.Column="1" ItemsSource="{Binding LegendEntries}" Margin="10,20,15,0">
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10" VerticalAlignment="Center">
-                                                                <Border Width="8" Height="8" CornerRadius="4" Background="{Binding Color}" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                                                                <StackPanel VerticalAlignment="Center">
-                                                                    <TextBlock Text="{Binding Label}" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
-                                                                    <TextBlock Text="{Binding LapTime}" Foreground="#94a3b8" FontSize="9"/>
-                                                                </StackPanel>
+                                            <ItemsControl Grid.Column="1" ItemsSource="{Binding LegendEntries}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="#1e293b" CornerRadius="4" Padding="6,2" Margin="0,0,8,0" BorderBrush="#334155" BorderThickness="1">
+                                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                                <Border Width="8" Height="8" CornerRadius="4" Background="{Binding Color}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                                <TextBlock Text="{Binding Label}" Foreground="White" FontSize="10" FontWeight="Bold" Margin="0,0,4,0"/>
+                                                                <TextBlock Text="{Binding LapTime}" Foreground="#94a3b8" FontSize="9"/>
                                                             </StackPanel>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </Grid>
-                                        </Border>
-                                        <Border Grid.Row="1" Visibility="Collapsed">
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Grid>
+
+                                        <!-- Main Combined Chart (Maximized Space) -->
+                                        <Border Grid.Row="1" BorderBrush="#334155" BorderThickness="1" CornerRadius="4" Margin="10,0,10,10">
                                             <lvc:CartesianChart Series="{Binding TelemetrySeries}" 
                                                                XAxes="{Binding XAxes}" 
                                                                YAxes="{Binding YAxes}" 
                                                                Sections="{Binding Sections}"
-                                                               LegendPosition="Right"
-                                                               LegendTextPaint="{Binding LegendTextPaint}"
+                                                               LegendPosition="Hidden"
                                                                MouseMove="Chart_PointerMove"
                                                                Margin="0"/>
                                         </Border>
@@ -482,4 +479,4 @@
             </dock:DockingManager>
             </Grid>
         </Grid>
-    </Window>
+</Window>
