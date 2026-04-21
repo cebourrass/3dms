@@ -121,6 +121,10 @@ namespace Analyzer.ViewModels
         // Cache pour la détection rapide par dossier
         private readonly Dictionary<string, CircuitMetadata> _directoryCircuitCache = new();
 
+        // Cache indépendant pour la référence globale (évite les pbs lors du switch de RA1)
+        private List<TelemetryPoint>? _cachedReferencePoints = null;
+        private string _cachedReferenceTime = "--:--.--";
+        
         public ObservableCollection<LegendEntry> LegendEntries { get; } = new();
 
         public SolidColorPaint LegendTextPaint { get; } = new SolidColorPaint(new SKColor(200, 200, 200));
@@ -484,13 +488,32 @@ namespace Analyzer.ViewModels
         [RelayCommand]
         public void SetReference()
         {
-            if (SelectedLap == null) return;
+            if (SelectedLap == null || CurrentSession == null) return;
             
-            // Unset old reference formatting
+            // On désactive l'ancien indicateur visuel
             foreach (var l in Laps) l.IsReference = false;
             
+            // On stocke l'objet
             ReferenceLap = SelectedLap;
             ReferenceLap.IsReference = true;
+
+            // CAPTURE GLOBALE : On clone les données pour qu'elles survivent au changement de session
+            _cachedReferenceTime = ReferenceLap.LapTime;
+            
+            uint startT = (uint)ReferenceLap.StartTimeMs;
+            float startD = (float)ReferenceLap.StartDistance;
+            
+            _cachedReferencePoints = CurrentSession.AllPoints
+                .Where(p => p.Time >= startT && p.Time <= (startT + ReferenceLap.LapTimeMs + 500))
+                .Select(p => new TelemetryPoint {
+                    Time = p.Time - startT,
+                    Distance = p.Distance - startD,
+                    Speed = p.Speed,
+                    LeanAngle = p.LeanAngle,
+                    Acceleration = p.Acceleration
+                })
+                .ToList();
+
             UpdateTelemetryCharts();
         }
 
@@ -499,6 +522,8 @@ namespace Analyzer.ViewModels
         {
             if (ReferenceLap != null) ReferenceLap.IsReference = false;
             ReferenceLap = null;
+            _cachedReferencePoints = null;
+            _cachedReferenceTime = "--:--.--";
             UpdateTelemetryCharts();
         }
 
@@ -510,7 +535,7 @@ namespace Analyzer.ViewModels
 
             // Clear previous session state completely
             Laps.Clear();
-            ReferenceLap = null;
+            // On ne vide plus ReferenceLap pour permettre la comparaison globale
             ComparisonLaps.Clear();
             _currentLapPoints.Clear();
             BestLapTime = "--:--.--";
@@ -640,22 +665,40 @@ namespace Analyzer.ViewModels
             }
         }
 
-        private void AddLapSeries(List<ISeries> seriesList, LapData lap, string label, float thicknessOverride, SKColor? overrideColor)
+        private void AddLapSeries(List<ISeries> seriesList, LapData? lap, string? label, float thicknessOverride, SKColor? overrideColor, bool isGlobalRef = false)
         {
-            var start = lap.StartTimeMs;
-            var end = start + lap.LapTimeMs;
-            var points = CurrentSession!.AllPoints
-                .Where(p => p.Time >= start && p.Time <= end)
-                .OrderBy(p => p.Time)
-                .ToList();
+            if (lap == null && !isGlobalRef) return;
+
+            List<TelemetryPoint> points;
+            double lapStart = 0;
+            double startDist = 0;
+
+            // Cas de la référence globale (déjà normalisée)
+            if (isGlobalRef && _cachedReferencePoints != null)
+            {
+                points = _cachedReferencePoints;
+                lapStart = 0;
+                startDist = 0;
+            }
+            else
+            {
+                if (lap == null) return;
+                var start = lap.StartTimeMs;
+                var end = start + lap.LapTimeMs;
+                points = CurrentSession!.AllPoints
+                    .Where(p => p.Time >= start && p.Time <= end)
+                    .OrderBy(p => p.Time)
+                    .ToList();
+                lapStart = start;
+                startDist = lap.StartDistance;
+            }
 
             if (!points.Any()) return;
 
             // Mise à jour des points actuels pour le curseur (si c'est le tour sélectionné)
             if (lap == SelectedLap) _currentLapPoints = points;
 
-            bool useDistance = (ComparisonLaps.Count > 1 || (ShowReference && ReferenceLap != null));
-            double startDist = lap.StartDistance;
+            bool useDistance = (ComparisonLaps.Count > 1 || (ShowReference && _cachedReferencePoints != null));
             bool legendAdded = false;
 
             if (ShowSpeed)
@@ -664,7 +707,7 @@ namespace Analyzer.ViewModels
                 seriesList.Add(new LineSeries<ObservablePoint>
                 {
                     Values = points.Select(p => new ObservablePoint(
-                        useDistance ? (double)(p.Distance - startDist) : (p.Time - start) / 1000.0, 
+                        useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, 
                         (double)p.Speed)).ToArray(),
                     Name = !legendAdded ? label : null,
                     Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(SpeedColor), thickness),
@@ -680,7 +723,7 @@ namespace Analyzer.ViewModels
                 seriesList.Add(new LineSeries<ObservablePoint>
                 {
                     Values = points.Select(p => new ObservablePoint(
-                        useDistance ? (double)(p.Distance - startDist) : (p.Time - start) / 1000.0, 
+                        useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, 
                         (double)Math.Abs(p.LeanAngle))).ToArray(),
                     Name = !legendAdded ? label : null,
                     Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(AngleColor), thickness),
@@ -696,7 +739,7 @@ namespace Analyzer.ViewModels
                 seriesList.Add(new LineSeries<ObservablePoint>
                 {
                     Values = points.Select(p => new ObservablePoint(
-                        useDistance ? (double)(p.Distance - startDist) : (p.Time - start) / 1000.0, 
+                        useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, 
                         (double)p.Acceleration * 50)).ToArray(),
                     Name = !legendAdded ? label : null,
                     Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(AccelColor), thickness),
@@ -737,12 +780,15 @@ namespace Analyzer.ViewModels
             var comparePool = ComparisonLaps.Where(l => l.LapTimeMs > 0 && l != SelectedLap && l != ReferenceLap).ToList();
 
             // Calculer les bornes globales sur TOUS les tours affichés pour une échelle cohérente
-            var allVisible = new List<LapData> { SelectedLap };
-            if (ShowReference && ReferenceLap != null) allVisible.Add(ReferenceLap);
-            allVisible.AddRange(comparePool);
-
-            double globalMinMs = allVisible.Min(l => l.LapTimeMs);
-            double globalMaxMs = allVisible.Max(l => l.LapTimeMs);
+            var allVisible = new List<LapData?>();
+            if (SelectedLap != null) allVisible.Add(SelectedLap);
+            if (ShowReference && _cachedReferencePoints != null) allVisible.Add(null); // 'null' représentera la réf globale dans les boucles
+            foreach (var l in comparePool) allVisible.Add(l);
+            
+            if (!allVisible.Any() || SelectedLap == null) return;
+            
+            double globalMinMs = allVisible.Min(l => l == null ? (ReferenceLap?.LapTimeMs ?? 0) : l.LapTimeMs);
+            double globalMaxMs = allVisible.Max(l => l == null ? (ReferenceLap?.LapTimeMs ?? 0) : l.LapTimeMs);
             double globalRange = globalMaxMs - globalMinMs;
 
             int comparisonIndex = 0;
@@ -779,14 +825,19 @@ namespace Analyzer.ViewModels
             AddLapSeries(seriesList, SelectedLap, null, sThickness, null); 
             LegendEntries.Add(new LegendEntry { Label = selectedLabel, LapTime = selectedTime, Color = SpeedColor, Thickness = sThickness });
 
-            // 2. Référence (si différente) - Calcul d'épaisseur dynamique
-            if (ShowReference && ReferenceLap != null && ReferenceLap != SelectedLap)
+            // 2. Référence Globale - Calcul d'épaisseur dynamique
+            if (ShowReference && _cachedReferencePoints != null)
             {
-                double rFactor = globalRange > 0 ? (ReferenceLap.LapTimeMs - globalMinMs) / globalRange : 0;
-                float rThickness = (float)(CompFastThickness + (rFactor * (CompSlowThickness - CompFastThickness)));
+                double refMs = _cachedReferencePoints.Count > 0 ? (_cachedReferencePoints.Last().Time) : 0; 
+                // Note: La comparaison de temps se fait sur LapTimeMs s'il y a un objet ReferenceLap, sinon on estime
+                double lapDuration = ReferenceLap?.LapTimeMs ?? refMs;
                 
-                AddLapSeries(seriesList, ReferenceLap, null, rThickness, SKColor.Parse(RefColor).WithAlpha(150));
-                LegendEntries.Add(new LegendEntry { Label = "[REF]", LapTime = ReferenceLap.LapTime, Color = RefColor, Thickness = rThickness, IsReference = true });
+                float rThickness = RefThickness;
+                
+                AddLapSeries(seriesList, null, null, rThickness, SKColor.Parse(RefColor), true);
+                
+                // Libellé propre
+                LegendEntries.Add(new LegendEntry { Label = "[REF]", LapTime = _cachedReferenceTime, Color = RefColor, Thickness = (double)rThickness, IsReference = true });
             }
 
             TelemetrySeries = seriesList.ToArray();
@@ -835,9 +886,20 @@ namespace Analyzer.ViewModels
 
             foreach (var lap in allVisible)
             {
-                var start = lap.StartTimeMs;
-                var end = start + lap.LapTimeMs;
-                var points = CurrentSession.AllPoints.Where(p => p.Time >= start && p.Time <= end).ToList();
+                List<TelemetryPoint> points;
+                // Si c'est la référence globale, on utilise le cache VM
+                if (lap == null && _cachedReferencePoints != null)
+                {
+                    points = _cachedReferencePoints;
+                }
+                else
+                {
+                    if (lap == null) continue;
+                    var start = lap.StartTimeMs;
+                    var end = start + lap.LapTimeMs;
+                    points = CurrentSession!.AllPoints.Where(p => p.Time >= start && p.Time <= end).ToList();
+                }
+
                 if (!points.Any()) continue;
 
                 if (ShowSpeed) 

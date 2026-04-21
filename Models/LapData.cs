@@ -24,6 +24,9 @@ namespace Analyzer.Models
         public string[] Partials { get; set; }
         public double[] PartialDistances { get; set; }
         public double[] CumulativePartialTimesMs { get; set; }
+        
+        // Stockage optionnel des points (nécessaire pour la référence globale entre sessions)
+        public System.Collections.Generic.List<TelemetryPoint>? TelemetryPoints { get; set; }
 
         private bool _isBestLap;
         public bool IsBestLap { get => _isBestLap; set => SetProperty(ref _isBestLap, value); }

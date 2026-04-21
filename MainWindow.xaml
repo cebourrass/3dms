@@ -170,6 +170,7 @@
                                     <TextBlock Text="RÉFÉRENCE (HEX)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
                                     <TextBox Text="{Binding RefColor, UpdateSourceTrigger=PropertyChanged}" FontSize="12" Background="#1a202c" Foreground="White" BorderBrush="#4a5568" Height="24" VerticalContentAlignment="Center"/>
                                     <Slider Minimum="0.5" Maximum="5" Value="{Binding RefThickness}" Margin="0,6,0,0"/>
+                                    <TextBlock Text="{Binding RefThickness, StringFormat='{}{0:F1} px'}" FontSize="10" Foreground="White" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                 </StackPanel>
 
                                 <!-- Comparison Range Settings -->
