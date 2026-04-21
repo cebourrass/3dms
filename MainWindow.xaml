@@ -124,7 +124,9 @@
                                 <!-- Laps View Panel -->
                                 <dock:LayoutAnchorablePane>
                                     <dock:LayoutAnchorable x:Name="LapsPane" ContentId="LapsPane" Title="Tableau des Tours" CanClose="False" IsVisibleChanged="Pane_IsVisibleChanged">
-                                        <DataGrid ItemsSource="{Binding Laps}" AutoGenerateColumns="False" 
+                                        <DataGrid ItemsSource="{Binding Laps}" 
+                                                  SelectedItem="{Binding SelectedLap}"
+                                                  AutoGenerateColumns="False" 
                                                   IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
                                                   CanUserReorderColumns="False" CanUserResizeRows="False"
                                                   Background="Transparent" BorderThickness="0" SelectionMode="Single"
@@ -263,13 +265,54 @@
                             <!-- Telemetry Panel (Bottom) -->
                             <dock:LayoutAnchorablePane>
                                 <dock:LayoutAnchorable x:Name="ChartsPane" ContentId="ChartsPane" Title="Graphiques Télémétriques" CanClose="False" IsVisibleChanged="Pane_IsVisibleChanged">
-                                    <Grid Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <lvc:CartesianChart Series="{Binding SpeedSeries}" XAxes="{Binding XAxes}" Margin="10"/>
-                                        <lvc:CartesianChart Grid.Column="1" Series="{Binding AngleSeries}" XAxes="{Binding XAxes}" Margin="10"/>
+                                    <Grid Background="#0f172a">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Toggles -->
+                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10,5">
+                                            <CheckBox Content="Vitesse" IsChecked="{Binding ShowSpeed}" Foreground="Cyan" Margin="0,0,20,0"/>
+                                            <CheckBox Content="Angle" IsChecked="{Binding ShowAngle}" Foreground="Yellow" Margin="0,0,20,0"/>
+                                            <CheckBox Content="G (Accel)" IsChecked="{Binding ShowAccel}" Foreground="Magenta"/>
+                                        </StackPanel>
+
+                                        <!-- Main Combined Chart with Border optimized -->
+                                        <Border Grid.Row="1" BorderBrush="#334155" BorderThickness="1" CornerRadius="4" Margin="10">
+                                            <lvc:CartesianChart Series="{Binding TelemetrySeries}" 
+                                                               XAxes="{Binding XAxes}" 
+                                                               YAxes="{Binding YAxes}" 
+                                                               Sections="{Binding Sections}"
+                                                               MouseMove="Chart_PointerMove"
+                                                               Margin="0"/>
+                                        </Border>
+
+                                        <!-- Value Display (Below Chart) -->
+                                        <Border Grid.Row="2" Background="#222" BorderBrush="#444" BorderThickness="0,1,0,0" Padding="15,10">
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <StackPanel Margin="0,0,40,0">
+                                                    <TextBlock Text="Temps" FontSize="11" Opacity="0.6" Margin="0,0,0,2"/>
+                                                    <TextBlock Text="{Binding CurrentX, StringFormat={}{0:F2} s}" FontSize="16" FontWeight="Bold" Foreground="White" Width="70"/>
+                                                </StackPanel>
+
+                                                <StackPanel Margin="0,0,40,0" Visibility="{Binding ShowSpeed, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <TextBlock Text="Vitesse" FontSize="11" Opacity="0.6" Margin="0,0,0,2"/>
+                                                    <TextBlock Text="{Binding CurrentSpeed, StringFormat={}{0:F1} km/h}" FontSize="16" FontWeight="Bold" Foreground="Cyan" Width="90"/>
+                                                </StackPanel>
+
+                                                <StackPanel Margin="0,0,40,0" Visibility="{Binding ShowAngle, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <TextBlock Text="Angle" FontSize="11" Opacity="0.6" Margin="0,0,0,2"/>
+                                                    <TextBlock Text="{Binding CurrentAngle, StringFormat={}{0:F0}°}" FontSize="16" FontWeight="Bold" Foreground="Yellow" Width="60"/>
+                                                </StackPanel>
+
+                                                <StackPanel Visibility="{Binding ShowAccel, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <TextBlock Text="Accélération" FontSize="11" Opacity="0.6" Margin="0,0,0,2"/>
+                                                    <TextBlock Text="{Binding CurrentAccel, StringFormat={}{0:F2} g}" FontSize="16" FontWeight="Bold" Foreground="Magenta" Width="70"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
                                     </Grid>
                                 </dock:LayoutAnchorable>
                             </dock:LayoutAnchorablePane>

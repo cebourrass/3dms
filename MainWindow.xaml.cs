@@ -1,5 +1,9 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Linq;
+using LiveChartsCore;
+using LiveChartsCore.Measure;
+using LiveChartsCore.SkiaSharpView.WPF;
 
 namespace Analyzer
 {
@@ -66,6 +70,22 @@ namespace Analyzer
                     case "MapPane": vm.IsMapVisible = visible; break;
                     case "ChartsPane": vm.IsChartsVisible = visible; break;
                 }
+            }
+        }
+
+        private void Chart_PointerMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            var chart = (CartesianChart)sender;
+            var mousePoint = e.GetPosition(chart);
+            
+            // On récupère les points situés sous la souris (le mode par défaut sera utilisé)
+            var dataPoints = chart.GetPointsAt(new LiveChartsCore.Drawing.LvcPoint((float)mousePoint.X, (float)mousePoint.Y));
+            
+            var firstPoint = dataPoints.FirstOrDefault();
+            if (firstPoint != null && DataContext is ViewModels.MainViewModel vm)
+            {
+                // SecondaryValue correspond généralement à l'axe X (le temps dans notre cas)
+                vm.UpdateCursor(firstPoint.Coordinate.SecondaryValue);
             }
         }
     }

@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LiveChartsCore;
+using LiveChartsCore.Defaults;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using SkiaSharp;
@@ -26,19 +27,69 @@ namespace Analyzer.ViewModels
             set => SetProperty(ref _currentMap, value);
         }
 
-        private ISeries[] _speedSeries;
-        public ISeries[] SpeedSeries
+        private ISeries[] _telemetrySeries = Array.Empty<ISeries>();
+        public ISeries[] TelemetrySeries
         {
-            get => _speedSeries;
-            set => SetProperty(ref _speedSeries, value);
+            get => _telemetrySeries;
+            set => SetProperty(ref _telemetrySeries, value);
         }
 
-        private ISeries[] _angleSeries;
-        public ISeries[] AngleSeries
+        private RectangularSection[] _sections = Array.Empty<RectangularSection>();
+        public RectangularSection[] Sections
         {
-            get => _angleSeries;
-            set => SetProperty(ref _angleSeries, value);
+            get => _sections;
+            set => SetProperty(ref _sections, value);
         }
+
+        private bool _showSpeed = true;
+        public bool ShowSpeed { get => _showSpeed; set { if (SetProperty(ref _showSpeed, value)) UpdateTelemetryCharts(); } }
+        
+        private bool _showAngle = true;
+        public bool ShowAngle { get => _showAngle; set { if (SetProperty(ref _showAngle, value)) UpdateTelemetryCharts(); } }
+        
+        private bool _showAccel = false;
+        public bool ShowAccel { get => _showAccel; set { if (SetProperty(ref _showAccel, value)) UpdateTelemetryCharts(); } }
+
+        private double _currentX;
+        public double CurrentX { get => _currentX; set => SetProperty(ref _currentX, value); }
+        
+        private double _currentSpeed;
+        public double CurrentSpeed { get => _currentSpeed; set => SetProperty(ref _currentSpeed, value); }
+        
+        private double _currentAngle;
+        public double CurrentAngle { get => _currentAngle; set => SetProperty(ref _currentAngle, value); }
+        
+        private double _currentAccel;
+        public double CurrentAccel { get => _currentAccel; set => SetProperty(ref _currentAccel, value); }
+
+        private List<TelemetryPoint> _currentLapPoints = new();
+
+        private LapData _selectedLap = null!;
+        public LapData SelectedLap
+        {
+            get => _selectedLap;
+            set
+            {
+                if (SetProperty(ref _selectedLap, value))
+                {
+                    UpdateTelemetryCharts();
+                }
+            }
+        }
+
+        private ExplorerItem _selectedExplorerItem = null!;
+        public ExplorerItem SelectedExplorerItem
+        {
+            get => _selectedExplorerItem;
+            set
+            {
+                if (SetProperty(ref _selectedExplorerItem, value) && value is SessionItem session)
+                {
+                    LoadSession(session.FilePath);
+                }
+            }
+        }
+
         private ObservableCollection<LapData> _laps = new ObservableCollection<LapData>();
         public ObservableCollection<LapData> Laps
         {
@@ -115,25 +166,28 @@ namespace Analyzer.ViewModels
             set => SetProperty(ref _explorerItems, value);
         }
 
-        private ExplorerItem _selectedExplorerItem;
-        public ExplorerItem SelectedExplorerItem
-        {
-            get => _selectedExplorerItem;
-            set
-            {
-                if (SetProperty(ref _selectedExplorerItem, value) && value is SessionItem session)
-                {
-                    LoadSession(session.FilePath);
-                }
-            }
-        }
-
         public Axis[] XAxes { get; set; } = 
         {
             new Axis
             {
-                Name = "Temps (s)",
-                Labeler = value => value.ToString("F1")
+                Name = "Temps (min:sec)",
+                NamePaint = new SolidColorPaint(new SKColor(148, 163, 184)),
+                Labeler = value => TimeSpan.FromSeconds(value).ToString(@"mm\:ss"),
+                LabelsPaint = new SolidColorPaint(new SKColor(100, 116, 139)),
+                TextSize = 9
+            }
+        };
+
+        public Axis[] YAxes { get; set; } = 
+        {
+            new Axis
+            {
+                Name = "Données",
+                NamePaint = new SolidColorPaint(new SKColor(148, 163, 184)),
+                LabelsPaint = new SolidColorPaint(new SKColor(100, 116, 139)),
+                TextSize = 9,
+                Labeler = value => Math.Round(value).ToString(),
+                ShowSeparatorLines = false
             }
         };
 
@@ -339,7 +393,6 @@ namespace Analyzer.ViewModels
                         {
                             for (int s = 0; s < numSectors; s++)
                             {
-                                // On cherche le min pour ce secteur s parmi les tours complets
                                 var bestSectorMs = completeLaps
                                     .Select(l => ParseTimeToMs(l.Partials[s]))
                                     .Where(ms => ms > 0)
@@ -367,58 +420,225 @@ namespace Analyzer.ViewModels
             
             CurrentSession = session;
 
-            // On ne prend qu'un point sur 2 pour l'affichage (10Hz -> 5Hz)
-            var displayPoints = points.Where((p, i) => i % 2 == 0).ToList();
+            // Sélection automatique du meilleur tour pour afficher la télémétrie
+            if (Laps.Any())
+            {
+                SelectedLap = Laps.FirstOrDefault(l => l.IsBestLap) ?? Laps.First();
+            }
+        }
 
-            var speedValues = displayPoints.Select(p => (double)p.Speed).ToArray();
-            var angleValues = displayPoints.Select(p => (double)p.LeanAngle).ToArray();
+        private void UpdateTelemetryCharts()
+        {
+            if (SelectedLap == null || CurrentSession == null) return;
 
-            SpeedSeries = new ISeries[] 
-            { 
-                new LineSeries<double> 
-                { 
-                    Values = speedValues, 
-                    Name = "Vitesse", 
-                    Stroke = new SolidColorPaint(SKColors.Cyan, 2),
+            var start = SelectedLap.StartTimeMs;
+            var end = start + SelectedLap.LapTimeMs;
+
+            _currentLapPoints = CurrentSession.AllPoints
+                .Where(p => p.Time >= start && p.Time <= end)
+                .OrderBy(p => p.Time)
+                .ToList();
+
+            if (!_currentLapPoints.Any()) return;
+
+            var seriesList = new List<ISeries>();
+
+            if (ShowSpeed)
+            {
+                seriesList.Add(new LineSeries<ObservablePoint>
+                {
+                    Values = _currentLapPoints.Select(p => new ObservablePoint((p.Time - start) / 1000.0, (double)p.Speed)).ToArray(),
+                    Name = "Vitesse",
+                    Stroke = new SolidColorPaint(new SKColor(16, 185, 129), 1.5f), // Emerald
                     GeometrySize = 0,
                     Fill = null
-                } 
-            };
+                });
+            }
+
+            if (ShowAngle)
+            {
+                seriesList.Add(new LineSeries<ObservablePoint>
+                {
+                    Values = _currentLapPoints.Select(p => new ObservablePoint((p.Time - start) / 1000.0, (double)Math.Abs(p.LeanAngle))).ToArray(),
+                    Name = "Angle",
+                    Stroke = new SolidColorPaint(new SKColor(251, 191, 36), 1.5f), // Amber
+                    GeometrySize = 0,
+                    Fill = null
+                });
+            }
+
+            if (ShowAccel)
+            {
+                seriesList.Add(new LineSeries<ObservablePoint>
+                {
+                    // On multiplie l'accel par 50 pour qu'elle soit visible sur la même échelle (0-200 km/h) ?
+                    // Non, mieux vaut utiliser ce que l'utilisateur demande. S'ils superposent 1.2g avec 200km/h, on ne verra rien.
+                    // Je vais multiplier par 50 pour que 2g = 100.
+                    Values = _currentLapPoints.Select(p => new ObservablePoint((p.Time - start) / 1000.0, (double)p.Acceleration * 50)).ToArray(),
+                    Name = "G (x50)",
+                    Stroke = new SolidColorPaint(new SKColor(139, 92, 246), 1.5f), // Violet
+                    GeometrySize = 0,
+                    Fill = null
+                });
+            }
+
+            TelemetrySeries = seriesList.ToArray();
+
+            // Création des sections (barres verticales pour les partiels)
+            var sectionsList = new List<RectangularSection>();
+            double cumulativeMs = 0;
+            if (SelectedLap.Partials != null)
+            {
+                // Barre de début de tour (T=0)
+                sectionsList.Add(new RectangularSection
+                {
+                    Xi = 0, Xj = 0,
+                    Stroke = new SolidColorPaint(SKColors.White.WithAlpha(60), 1)
+                });
+
+                for (int i = 0; i < SelectedLap.Partials.Length; i++)
+                {
+                    var pStr = SelectedLap.Partials[i];
+                    double pMs = ParseTimeToMs(pStr);
+                    if (pMs > 0)
+                    {
+                        cumulativeMs += pMs;
+                        var section = new RectangularSection
+                        {
+                            Xi = cumulativeMs / 1000.0,
+                            Xj = cumulativeMs / 1000.0,
+                            Stroke = new SolidColorPaint(SKColors.White.WithAlpha(40), 1)
+                        };
+
+                        // On n'affiche pas le label (P...) pour le tout dernier partiel (ligne d'arrivée)
+                        if (i < SelectedLap.Partials.Length - 1)
+                        {
+                            section.Label = $"P{i + 1}";
+                            section.LabelPaint = new SolidColorPaint(new SKColor(148, 163, 184));
+                            section.LabelSize = 11;
+                        }
+                        
+                        sectionsList.Add(section);
+                    }
+                }
+            }
+
+            // Quadrillage dynamique (4 divisions horizontales basées sur min/max réels)
+            double minY = double.MaxValue;
+            double maxY = double.MinValue;
+            bool hasData = false;
+
+            if (ShowSpeed && _currentLapPoints.Any()) { minY = Math.Min(minY, _currentLapPoints.Min(p => (double)p.Speed)); maxY = Math.Max(maxY, _currentLapPoints.Max(p => (double)p.Speed)); hasData = true; }
+            if (ShowAngle && _currentLapPoints.Any()) { minY = Math.Min(minY, _currentLapPoints.Min(p => (double)Math.Abs(p.LeanAngle))); maxY = Math.Max(maxY, _currentLapPoints.Max(p => (double)Math.Abs(p.LeanAngle))); hasData = true; }
+            if (ShowAccel && _currentLapPoints.Any()) { minY = Math.Min(minY, _currentLapPoints.Min(p => (double)p.Acceleration * 50)); maxY = Math.Max(maxY, _currentLapPoints.Max(p => (double)p.Acceleration * 50)); hasData = true; }
+
+            // Adaptation dynamique du titre de l'axe Y
+            var activeSeries = new List<string>();
+            if (ShowSpeed) activeSeries.Add("Vitesse");
+            if (ShowAngle) activeSeries.Add("Angle");
+            if (ShowAccel) activeSeries.Add("G");
+            YAxes[0].Name = string.Join(" / ", activeSeries);
+
+            if (hasData && maxY > minY)
+            {
+                double range = maxY - minY;
+                double stepY = range / 4;
+                var separators = new List<double>();
+                for (int i = 0; i <= 4; i++)
+                {
+                    double val = minY + (i * stepY);
+                    separators.Add(val);
+                    sectionsList.Add(new RectangularSection
+                    {
+                        Yi = val,
+                        Yj = val,
+                        Stroke = new SolidColorPaint(SKColors.White.WithAlpha(15), 0.5f)
+                    });
+                }
+                YAxes[0].CustomSeparators = separators.ToArray();
+                YAxes[0].MinLimit = minY;
+                YAxes[0].MaxLimit = maxY;
+            }
+
+            // Quadrillage temporel (4 divisions verticales)
+            double lapDuration = SelectedLap.LapTimeMs / 1000.0;
+            XAxes[0].MinLimit = 0;
+            XAxes[0].MaxLimit = lapDuration;
+
+            if (lapDuration > 0)
+            {
+                double stepX = lapDuration / 4;
+                for (int i = 1; i < 4; i++)
+                {
+                    double val = i * stepX;
+                    sectionsList.Add(new RectangularSection
+                    {
+                        Xi = val,
+                        Xj = val,
+                        Stroke = new SolidColorPaint(SKColors.White.WithAlpha(20), 0.5f)
+                    });
+                }
+            }
+
+            // Ajout du curseur (barre verticale rouge mobile)
+            sectionsList.Add(new RectangularSection
+            {
+                Xi = CurrentX,
+                Xj = CurrentX,
+                Stroke = new SolidColorPaint(new SKColor(239, 68, 68), 2) // Red 500
+            });
+
+            Sections = sectionsList.ToArray();
             
-            AngleSeries = new ISeries[] 
-            { 
-                new LineSeries<double> 
-                { 
-                    Values = angleValues, 
-                    Name = "Angle", 
-                    Stroke = new SolidColorPaint(SKColors.Yellow, 2),
-                    GeometrySize = 0,
-                    Fill = null
-                } 
-            };
+            // On force une mise à jour des valeurs du curseur au début par défaut
+            UpdateCursor(0);
+        }
+
+        public void UpdateCursor(double timeInSeconds)
+        {
+            if (!_currentLapPoints.Any()) return;
+
+            CurrentX = timeInSeconds;
+            uint targetTime = (uint)(SelectedLap.StartTimeMs + (timeInSeconds * 1000.0));
+            
+            // Trouve le point le plus proche
+            var point = _currentLapPoints
+                .OrderBy(p => Math.Abs((long)p.Time - targetTime))
+                .FirstOrDefault();
+
+            if (point != null)
+            {
+                CurrentSpeed = point.Speed;
+                CurrentAngle = Math.Abs(point.LeanAngle);
+                CurrentAccel = point.Acceleration;
+            }
+
+            // Mettre à jour la position de la barre rouge dans Sections sans tout recalculer si possible
+            if (Sections != null && Sections.Length > 0)
+            {
+                var cursorSection = Sections.Last();
+                cursorSection.Xi = timeInSeconds;
+                cursorSection.Xj = timeInSeconds;
+            }
         }
 
         private void LoadMockupData()
         {
             var time = Enumerable.Range(0, 100).Select(i => (double)i).ToArray();
-            var speeds = time.Select(t => 180 + 30 * Math.Sin(t * 0.1) + new Random(42).NextDouble() * 5).ToArray();
-            var angles = time.Select(t => 45 * Math.Cos(t * 0.1)).ToArray();
+            var speeds = time.Select(t => 180 + 30 * Math.Sin(t * 0.1) + new Random(42).NextDouble() * 5).Select((v, i) => new ObservablePoint(i, v)).ToArray();
+            var angles = time.Select(t => 45 * Math.Cos(t * 0.1)).Select((v, i) => new ObservablePoint(i, v)).ToArray();
 
-            SpeedSeries = new ISeries[]
+            TelemetrySeries = new ISeries[]
             {
-                new LineSeries<double>
+                new LineSeries<ObservablePoint>
                 {
                     Values = speeds,
                     Name = "Vitesse (km/h)",
                     Fill = null,
                     Stroke = new SolidColorPaint(SKColors.DodgerBlue) { StrokeThickness = 3 },
                     GeometrySize = 0
-                }
-            };
-
-            AngleSeries = new ISeries[]
-            {
-                new LineSeries<double>
+                },
+                new LineSeries<ObservablePoint>
                 {
                     Values = angles,
                     Name = "Angle (°)",
