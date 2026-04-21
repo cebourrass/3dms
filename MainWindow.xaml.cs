@@ -4,6 +4,8 @@ using System.Linq;
 using LiveChartsCore;
 using LiveChartsCore.Measure;
 using LiveChartsCore.SkiaSharpView.WPF;
+using Xceed.Wpf.AvalonDock.Layout;
+using System.Collections.Generic;
 
 namespace Analyzer
 {
@@ -14,6 +16,9 @@ namespace Analyzer
             InitializeComponent();
             var vm = new ViewModels.MainViewModel();
             DataContext = vm;
+            
+            this.Loaded += MainWindow_Loaded;
+            this.Closing += MainWindow_Closing;
 
             vm.PropertyChanged += (s, e) =>
             {
@@ -23,8 +28,74 @@ namespace Analyzer
                     case nameof(vm.IsSessionInfoVisible): SyncPane(SessionInfoPane, vm.IsSessionInfoVisible); break;
                     case nameof(vm.IsMapVisible): SyncPane(MapPane, vm.IsMapVisible); break;
                     case nameof(vm.IsChartsVisible): SyncPane(ChartsPane, vm.IsChartsVisible); break;
+                    case nameof(vm.IsExplorerVisible): SyncPane(ExplorerPane, vm.IsExplorerVisible); break;
                 }
             };
+        }
+
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is ViewModels.MainViewModel vm)
+            {
+                // Restaurer la géométrie de la fenêtre
+                var settings = new Services.SettingsService().LoadSettings();
+                this.Width = settings.WindowWidth;
+                this.Height = settings.WindowHeight;
+                if (System.Enum.TryParse<WindowState>(settings.WindowState, out var state))
+                    this.WindowState = state;
+
+                // Restaurer le layout AvalonDock
+                string layoutPath = new Services.SettingsService().GetLayoutPath();
+                if (System.IO.File.Exists(layoutPath))
+                {
+                    try
+                    {
+                        var serializer = new Xceed.Wpf.AvalonDock.Layout.Serialization.XmlLayoutSerializer(DockManager);
+                        serializer.LayoutSerializationCallback += (s, args) =>
+                        {
+                            // On récupère le contenu UI défini dans le XAML pour l'injecter dans le nouveau layout
+                            var existingPane = this.FindName(args.Model.ContentId) as Xceed.Wpf.AvalonDock.Layout.LayoutAnchorable;
+                            if (existingPane != null)
+                            {
+                                args.Content = existingPane.Content;
+                            }
+                        };
+                        serializer.Deserialize(layoutPath);
+
+                        // IMPORTANT : Après désérialisation, les objets Anchorable ont été recréés.
+                        // On doit remettre à jour nos références locales pour que le SyncPane fonctionne toujours.
+                        var allPanes = DockManager.Layout.Descendents().OfType<LayoutAnchorable>().ToList();
+                        ExplorerPane = allPanes.FirstOrDefault(p => p.ContentId == "ExplorerPane") ?? ExplorerPane;
+                        LapsPane = allPanes.FirstOrDefault(p => p.ContentId == "LapsPane") ?? LapsPane;
+                        SessionInfoPane = allPanes.FirstOrDefault(p => p.ContentId == "SessionInfoPane") ?? SessionInfoPane;
+                        MapPane = allPanes.FirstOrDefault(p => p.ContentId == "MapPane") ?? MapPane;
+                        ChartsPane = allPanes.FirstOrDefault(p => p.ContentId == "ChartsPane") ?? ChartsPane;
+                    }
+                    catch 
+                    { 
+                        // En cas d'erreur de désérialisation, on supprime le fichier corrompu
+                        System.IO.File.Delete(layoutPath);
+                    }
+                }
+            }
+        }
+
+        private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (DataContext is ViewModels.MainViewModel vm)
+            {
+                // Sauvegarder les paramètres dans le JSON
+                vm.SaveSettings(this.ActualWidth, this.ActualHeight, this.WindowState.ToString());
+
+                // Sauvegarder le layout AvalonDock dans le XML
+                try
+                {
+                    var serializer = new Xceed.Wpf.AvalonDock.Layout.Serialization.XmlLayoutSerializer(DockManager);
+                    string layoutPath = new Services.SettingsService().GetLayoutPath();
+                    serializer.Serialize(layoutPath);
+                }
+                catch { }
+            }
         }
 
         private void SyncPane(Xceed.Wpf.AvalonDock.Layout.LayoutAnchorable pane, bool visible)
@@ -88,6 +159,7 @@ namespace Analyzer
                     case "SessionInfoPane": vm.IsSessionInfoVisible = visible; break;
                     case "MapPane": vm.IsMapVisible = visible; break;
                     case "ChartsPane": vm.IsChartsVisible = visible; break;
+                    case "ExplorerPane": vm.IsExplorerVisible = visible; break;
                 }
             }
         }

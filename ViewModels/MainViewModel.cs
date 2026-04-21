@@ -36,6 +36,8 @@ namespace Analyzer.ViewModels
         private readonly Ra1ReaderService _readerService = new Ra1ReaderService();
         private readonly MapReaderService _mapReaderService = new MapReaderService();
         private readonly LapService _lapService = new LapService();
+        private readonly SettingsService _settingsService = new SettingsService();
+        private UserSettings _settings;
 
         private TrackMap? _currentMap;
         public TrackMap? CurrentMap
@@ -296,28 +298,78 @@ namespace Analyzer.ViewModels
         }
 
         private bool _isChartsVisible = true;
-        public bool IsChartsVisible
-        {
-            get => _isChartsVisible;
-            set => SetProperty(ref _isChartsVisible, value);
-        }
+        public bool IsChartsVisible { get => _isChartsVisible; set => SetProperty(ref _isChartsVisible, value); }
+
+        private bool _isExplorerVisible = true;
+        public bool IsExplorerVisible { get => _isExplorerVisible; set => SetProperty(ref _isExplorerVisible, value); }
 
         public MainViewModel()
         {
+            _settings = _settingsService.LoadSettings();
+
+            // Appliquer les paramètres chargés
+            _speedColor = _settings.SpeedColor;
+            _speedThickness = _settings.SpeedThickness;
+            _angleColor = _settings.AngleColor;
+            _angleThickness = _settings.AngleThickness;
+            _accelColor = _settings.AccelColor;
+            _accelThickness = _settings.AccelThickness;
+            _refColor = _settings.RefColor;
+            _refThickness = _settings.RefThickness;
+            _compFastThickness = _settings.CompFastThickness;
+            _compSlowThickness = _settings.CompSlowThickness;
+
+            _isLapsVisible = _settings.IsLapsVisible;
+            _isSessionInfoVisible = _settings.IsSessionInfoVisible;
+            _isMapVisible = _settings.IsMapVisible;
+            _isChartsVisible = _settings.IsChartsVisible;
+            _isExplorerVisible = _settings.IsExplorerVisible;
+
             LoadAvailableCircuits();
             LoadExplorer();
-            LoadDummyLaps();
 
-            // Charge le premier fichier trouvé par défaut
-            var firstSession = FindFirstSession(ExplorerItems);
-            if (firstSession != null)
+            if (!string.IsNullOrEmpty(_settings.LastFilePath) && File.Exists(_settings.LastFilePath))
             {
-                LoadSession(firstSession.FilePath);
+                // Recharge asynchrone pour laisser l'UI s'initialiser
+                System.Threading.Tasks.Task.Run(async () => {
+                    await System.Threading.Tasks.Task.Delay(500);
+                    App.Current.Dispatcher.Invoke(() => LoadSession(_settings.LastFilePath));
+                });
             }
             else
             {
-                LoadMockupData();
+                LoadDummyLaps();
+                CircuitName = "Aucun circuit";
             }
+        }
+
+        public void SaveSettings(double width, double height, string windowState)
+        {
+            _settings.WindowWidth = width;
+            _settings.WindowHeight = height;
+            _settings.WindowState = windowState;
+
+            _settings.IsLapsVisible = IsLapsVisible;
+            _settings.IsSessionInfoVisible = IsSessionInfoVisible;
+            _settings.IsMapVisible = IsMapVisible;
+            _settings.IsChartsVisible = IsChartsVisible;
+            _settings.IsExplorerVisible = IsExplorerVisible;
+
+            _settings.SpeedColor = SpeedColor;
+            _settings.SpeedThickness = SpeedThickness;
+            _settings.AngleColor = AngleColor;
+            _settings.AngleThickness = AngleThickness;
+            _settings.AccelColor = AccelColor;
+            _settings.AccelThickness = AccelThickness;
+            _settings.RefColor = RefColor;
+            _settings.RefThickness = RefThickness;
+
+            _settings.CompFastThickness = CompFastThickness;
+            _settings.CompSlowThickness = CompSlowThickness;
+
+            _settings.LastFilePath = CurrentSession?.FilePath;
+
+            _settingsService.SaveSettings(_settings);
         }
 
         private void LoadExplorer()
@@ -450,6 +502,7 @@ namespace Analyzer.ViewModels
             {
                 if (SetProperty(ref _currentSession, value))
                 {
+                    
                     OnPropertyChanged(nameof(IsP1Visible));
                     OnPropertyChanged(nameof(IsP2Visible));
                     OnPropertyChanged(nameof(IsP3Visible));
