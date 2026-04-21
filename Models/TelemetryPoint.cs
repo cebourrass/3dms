@@ -36,5 +36,10 @@ namespace Analyzer.Models
         /// Accélération longitudinale en G.
         /// </summary>
         public float Acceleration { get; set; }
+
+        /// <summary>
+        /// Distance cumulée depuis le début de la session en mètres (calculé après chargement).
+        /// </summary>
+        public float Distance { get; set; }
     }
 }

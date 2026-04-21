@@ -15,6 +15,15 @@ using System.IO;
 
 namespace Analyzer.ViewModels
 {
+    public class LegendEntry : ObservableObject
+    {
+        public string Label { get; set; } = string.Empty;
+        public string LapTime { get; set; } = string.Empty;
+        public string Color { get; set; } = "#FFFFFF";
+        public double Thickness { get; set; } = 1.5;
+        public bool IsReference { get; set; }
+    }
+
     public class CircuitMetadata
     {
         public string Name { get; set; } = string.Empty;
@@ -82,6 +91,12 @@ namespace Analyzer.ViewModels
         private float _refThickness = 1.2f;
         public float RefThickness { get => _refThickness; set { if (SetProperty(ref _refThickness, value)) UpdateTelemetryCharts(); } }
 
+        // Comparison Thickness Range (Fast/Slow)
+        private float _compFastThickness = 1.5f;
+        public float CompFastThickness { get => _compFastThickness; set { if (SetProperty(ref _compFastThickness, value)) UpdateTelemetryCharts(); } }
+        private float _compSlowThickness = 0.5f;
+        public float CompSlowThickness { get => _compSlowThickness; set { if (SetProperty(ref _compSlowThickness, value)) UpdateTelemetryCharts(); } }
+
         private bool _showSpeed = true;
         public bool ShowSpeed { get => _showSpeed; set { if (SetProperty(ref _showSpeed, value)) UpdateTelemetryCharts(); } }
         
@@ -100,8 +115,12 @@ namespace Analyzer.ViewModels
         private double _currentAngle;
         public double CurrentAngle { get => _currentAngle; set => SetProperty(ref _currentAngle, value); }
         
-        private double _currentAccel;
-        public double CurrentAccel { get => _currentAccel; set => SetProperty(ref _currentAccel, value); }
+        private float _currentAccel;
+        public float CurrentAccel { get => _currentAccel; set => SetProperty(ref _currentAccel, value); }
+
+        public ObservableCollection<LegendEntry> LegendEntries { get; } = new();
+
+        public SolidColorPaint LegendTextPaint { get; } = new SolidColorPaint(new SKColor(200, 200, 200));
 
         private List<TelemetryPoint> _currentLapPoints = new();
 
@@ -486,6 +505,11 @@ namespace Analyzer.ViewModels
             var points = _readerService.ReadFile(filePath);
             if (points == null || !points.Any()) return;
 
+            // Clear session-specific state
+            ReferenceLap = null;
+            ComparisonLaps.Clear();
+            _currentLapPoints.Clear();
+
             var fileName = System.IO.Path.GetFileNameWithoutExtension(filePath);
             var session = new SessionData
             {
@@ -591,7 +615,7 @@ namespace Analyzer.ViewModels
             }
         }
 
-        private void AddLapSeries(List<ISeries> seriesList, LapData lap, string suffix, float thicknessOverride, SKColor? overrideColor)
+        private void AddLapSeries(List<ISeries> seriesList, LapData lap, string label, float thicknessOverride, SKColor? overrideColor)
         {
             var start = lap.StartTimeMs;
             var end = start + lap.LapTimeMs;
@@ -605,17 +629,24 @@ namespace Analyzer.ViewModels
             // Mise à jour des points actuels pour le curseur (si c'est le tour sélectionné)
             if (lap == SelectedLap) _currentLapPoints = points;
 
+            bool useDistance = (ComparisonLaps.Count > 1 || (ShowReference && ReferenceLap != null));
+            double startDist = lap.StartDistance;
+            bool legendAdded = false;
+
             if (ShowSpeed)
             {
                 float thickness = thicknessOverride > 0 ? thicknessOverride : SpeedThickness;
                 seriesList.Add(new LineSeries<ObservablePoint>
                 {
-                    Values = points.Select(p => new ObservablePoint((p.Time - start) / 1000.0, (double)p.Speed)).ToArray(),
-                    Name = $"{suffix} Vitesse",
+                    Values = points.Select(p => new ObservablePoint(
+                        useDistance ? (double)(p.Distance - startDist) : (p.Time - start) / 1000.0, 
+                        (double)p.Speed)).ToArray(),
+                    Name = !legendAdded ? label : null,
                     Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(SpeedColor), thickness),
                     GeometrySize = 0,
                     Fill = null
                 });
+                legendAdded = true;
             }
 
             if (ShowAngle)
@@ -623,12 +654,15 @@ namespace Analyzer.ViewModels
                 float thickness = thicknessOverride > 0 ? thicknessOverride : AngleThickness;
                 seriesList.Add(new LineSeries<ObservablePoint>
                 {
-                    Values = points.Select(p => new ObservablePoint((p.Time - start) / 1000.0, (double)Math.Abs(p.LeanAngle))).ToArray(),
-                    Name = $"{suffix} Angle",
+                    Values = points.Select(p => new ObservablePoint(
+                        useDistance ? (double)(p.Distance - startDist) : (p.Time - start) / 1000.0, 
+                        (double)Math.Abs(p.LeanAngle))).ToArray(),
+                    Name = !legendAdded ? label : null,
                     Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(AngleColor), thickness),
                     GeometrySize = 0,
                     Fill = null
                 });
+                legendAdded = true;
             }
 
             if (ShowAccel)
@@ -636,12 +670,15 @@ namespace Analyzer.ViewModels
                 float thickness = thicknessOverride > 0 ? thicknessOverride : AccelThickness;
                 seriesList.Add(new LineSeries<ObservablePoint>
                 {
-                    Values = points.Select(p => new ObservablePoint((p.Time - start) / 1000.0, (double)p.Acceleration * 50)).ToArray(),
-                    Name = $"{suffix} G",
+                    Values = points.Select(p => new ObservablePoint(
+                        useDistance ? (double)(p.Distance - startDist) : (p.Time - start) / 1000.0, 
+                        (double)p.Acceleration * 50)).ToArray(),
+                    Name = !legendAdded ? label : null,
                     Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(AccelColor), thickness),
                     GeometrySize = 0,
                     Fill = null
                 });
+                legendAdded = true;
             }
         }
 
@@ -649,57 +686,107 @@ namespace Analyzer.ViewModels
         {
             if (SelectedLap == null || CurrentSession == null) return;
 
-            var seriesList = new List<ISeries>();
+            bool useDistance = (ComparisonLaps.Count > 1 || (ShowReference && ReferenceLap != null));
 
-            // 1. Affichage de la RÉFÉRENCE (si active)
-            if (ShowReference && ReferenceLap != null)
+            // Mise à jour de l'axe X
+            if (useDistance)
             {
-                AddLapSeries(seriesList, ReferenceLap, "[REF]", RefThickness, SKColor.Parse(RefColor).WithAlpha(80));
+                XAxes[0].Name = "Distance (m)";
+                XAxes[0].Labeler = value => $"{value:F0}";
+            }
+            else
+            {
+                XAxes[0].Name = "Temps (min:sec)";
+                XAxes[0].Labeler = value => TimeSpan.FromSeconds(value).ToString(@"mm\:ss");
             }
 
-            // 2. Affichage des tours de COMPARAISON (multi-sélection)
+            var seriesList = new List<ISeries>();
+            LegendEntries.Clear();
+
+            // 3. Tours de Comparaison
+            var comparePool = ComparisonLaps.Where(l => l.LapTimeMs > 0 && l != SelectedLap && l != ReferenceLap).ToList();
+
+            // Calculer les bornes globales sur TOUS les tours affichés pour une échelle cohérente
+            var allVisible = new List<LapData> { SelectedLap };
+            if (ShowReference && ReferenceLap != null) allVisible.Add(ReferenceLap);
+            allVisible.AddRange(comparePool);
+
+            double globalMinMs = allVisible.Min(l => l.LapTimeMs);
+            double globalMaxMs = allVisible.Max(l => l.LapTimeMs);
+            double globalRange = globalMaxMs - globalMinMs;
+
             int comparisonIndex = 0;
-            var comparisonColors = new[] { SKColors.SlateBlue, SKColors.DarkCyan, SKColors.DarkGoldenrod };
-            foreach (var lap in ComparisonLaps)
+            var comparisonColors = new[] { "#6366f1", "#06b6d4", "#eab308", "#ef4444", "#a855f7" }; // SlateBlue, Cyan, Yellow, Red, Purple
+            
+            foreach (var lap in comparePool)
             {
-                if (lap == SelectedLap || lap == ReferenceLap) continue;
-                var color = comparisonColors[comparisonIndex % comparisonColors.Length].WithAlpha(100);
-                AddLapSeries(seriesList, lap, $"T{lap.Number}", 1.0f, color);
+                // Interpolation basée sur la plage GLOBALE
+                double factor = globalRange > 0 ? (lap.LapTimeMs - globalMinMs) / globalRange : 0;
+                float thickness = (float)(CompFastThickness + (factor * (CompSlowThickness - CompFastThickness)));
+                
+                string hexColor = comparisonColors[comparisonIndex % comparisonColors.Length];
+                
+                var color = SKColor.Parse(hexColor).WithAlpha(180);
+                AddLapSeries(seriesList, lap, null, thickness, color);
+                
+                LegendEntries.Add(new LegendEntry { 
+                    Label = $"T{lap.Number}", 
+                    LapTime = lap.LapTime, 
+                    Color = hexColor, 
+                    Thickness = thickness 
+                });
+                
                 comparisonIndex++;
             }
 
-            // 3. Affichage du tour ACTUEL (SelectedLap)
-            AddLapSeries(seriesList, SelectedLap, "", 0, null); // thickness 0 means use properties below
+            // 1. Tour Sélectionné (Vert) - Calcul d'épaisseur dynamique
+            string selectedTime = SelectedLap.LapTime;
+            string selectedLabel = (ShowReference && SelectedLap == ReferenceLap) ? $"[REF] T{SelectedLap.Number}" : $"T{SelectedLap.Number}";
+            
+            double sFactor = globalRange > 0 ? (SelectedLap.LapTimeMs - globalMinMs) / globalRange : 0;
+            float sThickness = (float)(CompFastThickness + (sFactor * (CompSlowThickness - CompFastThickness)));
+            
+            AddLapSeries(seriesList, SelectedLap, null, sThickness, null); 
+            LegendEntries.Add(new LegendEntry { Label = selectedLabel, LapTime = selectedTime, Color = SpeedColor, Thickness = sThickness });
+
+            // 2. Référence (si différente) - Calcul d'épaisseur dynamique
+            if (ShowReference && ReferenceLap != null && ReferenceLap != SelectedLap)
+            {
+                double rFactor = globalRange > 0 ? (ReferenceLap.LapTimeMs - globalMinMs) / globalRange : 0;
+                float rThickness = (float)(CompFastThickness + (rFactor * (CompSlowThickness - CompFastThickness)));
+                
+                AddLapSeries(seriesList, ReferenceLap, null, rThickness, SKColor.Parse(RefColor).WithAlpha(150));
+                LegendEntries.Add(new LegendEntry { Label = "[REF]", LapTime = ReferenceLap.LapTime, Color = RefColor, Thickness = rThickness, IsReference = true });
+            }
 
             TelemetrySeries = seriesList.ToArray();
 
             // Création des sections (barres verticales pour les partiels du tour ACTUEL)
             var sectionsList = new List<RectangularSection>();
-            double cumulativeMs = 0;
-            if (SelectedLap.Partials != null)
+            if (SelectedLap.PartialDistances != null)
             {
-                // Barre de début de tour (T=0)
+                // Barre de début de tour (T=0 / D=0)
                 sectionsList.Add(new RectangularSection
                 {
                     Xi = 0, Xj = 0,
                     Stroke = new SolidColorPaint(SKColors.White.WithAlpha(60), 1)
                 });
 
-                for (int i = 0; i < SelectedLap.Partials.Length; i++)
+                for (int i = 0; i < SelectedLap.PartialDistances.Length; i++)
                 {
-                    var pStr = SelectedLap.Partials[i];
-                    double pMs = ParseTimeToMs(pStr);
-                    if (pMs > 0)
+                    double pos = useDistance 
+                        ? SelectedLap.PartialDistances[i] 
+                        : SelectedLap.CumulativePartialTimesMs[i] / 1000.0;
+
+                    if (pos > 0)
                     {
-                        cumulativeMs += pMs;
                         var section = new RectangularSection
                         {
-                            Xi = cumulativeMs / 1000.0,
-                            Xj = cumulativeMs / 1000.0,
+                            Xi = pos, Xj = pos,
                             Stroke = new SolidColorPaint(SKColors.White.WithAlpha(40), 1)
                         };
 
-                        if (i < SelectedLap.Partials.Length - 1)
+                        if (i < SelectedLap.PartialDistances.Length - 1)
                         {
                             section.Label = $"P{i + 1}";
                             section.LabelPaint = new SolidColorPaint(new SKColor(148, 163, 184));
@@ -711,14 +798,37 @@ namespace Analyzer.ViewModels
                 }
             }
 
-            // Quadrillage dynamique (4 divisions horizontales basées sur min/max réels)
+            // Quadrillage dynamique basé sur TOUS les tours visibles
             double minY = double.MaxValue;
             double maxY = double.MinValue;
-            bool hasData = false;
+            bool hasGlobalData = false;
 
-            if (ShowSpeed && _currentLapPoints.Any()) { minY = Math.Min(minY, _currentLapPoints.Min(p => (double)p.Speed)); maxY = Math.Max(maxY, _currentLapPoints.Max(p => (double)p.Speed)); hasData = true; }
-            if (ShowAngle && _currentLapPoints.Any()) { minY = Math.Min(minY, _currentLapPoints.Min(p => (double)Math.Abs(p.LeanAngle))); maxY = Math.Max(maxY, _currentLapPoints.Max(p => (double)Math.Abs(p.LeanAngle))); hasData = true; }
-            if (ShowAccel && _currentLapPoints.Any()) { minY = Math.Min(minY, _currentLapPoints.Min(p => (double)p.Acceleration * 50)); maxY = Math.Max(maxY, _currentLapPoints.Max(p => (double)p.Acceleration * 50)); hasData = true; }
+            foreach (var lap in allVisible)
+            {
+                var start = lap.StartTimeMs;
+                var end = start + lap.LapTimeMs;
+                var points = CurrentSession.AllPoints.Where(p => p.Time >= start && p.Time <= end).ToList();
+                if (!points.Any()) continue;
+
+                if (ShowSpeed) 
+                { 
+                    minY = Math.Min(minY, points.Min(p => (double)p.Speed)); 
+                    maxY = Math.Max(maxY, points.Max(p => (double)p.Speed)); 
+                    hasGlobalData = true; 
+                }
+                if (ShowAngle) 
+                { 
+                    minY = Math.Min(minY, points.Min(p => (double)Math.Abs(p.LeanAngle))); 
+                    maxY = Math.Max(maxY, points.Max(p => (double)Math.Abs(p.LeanAngle))); 
+                    hasGlobalData = true; 
+                }
+                if (ShowAccel) 
+                { 
+                    minY = Math.Min(minY, points.Min(p => (double)p.Acceleration * 50)); 
+                    maxY = Math.Max(maxY, points.Max(p => (double)p.Acceleration * 50)); 
+                    hasGlobalData = true; 
+                }
+            }
 
             // Adaptation dynamique du titre de l'axe Y
             var activeSeries = new List<string>();
@@ -727,7 +837,7 @@ namespace Analyzer.ViewModels
             if (ShowAccel) activeSeries.Add("G");
             YAxes[0].Name = string.Join(" / ", activeSeries);
 
-            if (hasData && maxY > minY)
+            if (hasGlobalData && maxY > minY)
             {
                 double range = maxY - minY;
                 double stepY = range / 4;
@@ -748,14 +858,26 @@ namespace Analyzer.ViewModels
                 YAxes[0].MaxLimit = maxY;
             }
 
-            // Quadrillage temporel (4 divisions verticales)
-            double lapDuration = SelectedLap.LapTimeMs / 1000.0;
-            XAxes[0].MinLimit = 0;
-            XAxes[0].MaxLimit = lapDuration;
+            OnPropertyChanged(nameof(XAxes));
+            OnPropertyChanged(nameof(YAxes));
 
-            if (lapDuration > 0)
+            // Quadrillage temporel / Distance (4 divisions verticales)
+            double lapRange = 0;
+            if (useDistance && _currentLapPoints.Any())
             {
-                double stepX = lapDuration / 4;
+                lapRange = (_currentLapPoints.Last().Distance - _currentLapPoints.First().Distance);
+            }
+            else
+            {
+                lapRange = SelectedLap.LapTimeMs / 1000.0;
+            }
+
+            XAxes[0].MinLimit = 0;
+            XAxes[0].MaxLimit = lapRange;
+
+            if (lapRange > 0)
+            {
+                double stepX = lapRange / 4;
                 for (int i = 1; i < 4; i++)
                 {
                     double val = i * stepX;
@@ -775,22 +897,33 @@ namespace Analyzer.ViewModels
                 Xj = CurrentX,
                 Stroke = new SolidColorPaint(new SKColor(239, 68, 68), 2) // Red 500
             });
-
             Sections = sectionsList.ToArray();
             UpdateCursor(0);
         }
 
-        public void UpdateCursor(double timeInSeconds)
+        public void UpdateCursor(double timeOrDist)
         {
             if (!_currentLapPoints.Any()) return;
 
-            CurrentX = timeInSeconds;
-            uint targetTime = (uint)(SelectedLap.StartTimeMs + (timeInSeconds * 1000.0));
+            CurrentX = timeOrDist;
             
-            // Trouve le point le plus proche
-            var point = _currentLapPoints
-                .OrderBy(p => Math.Abs((long)p.Time - targetTime))
-                .FirstOrDefault();
+            bool useDistance = (ComparisonLaps.Count > 1 || (ShowReference && ReferenceLap != null));
+            TelemetryPoint? point = null;
+
+            if (useDistance)
+            {
+                double startDist = _currentLapPoints[0].Distance;
+                point = _currentLapPoints
+                    .OrderBy(p => Math.Abs((p.Distance - startDist) - timeOrDist))
+                    .FirstOrDefault();
+            }
+            else
+            {
+                uint targetTime = (uint)(SelectedLap.StartTimeMs + (timeOrDist * 1000.0));
+                point = _currentLapPoints
+                    .OrderBy(p => Math.Abs((long)p.Time - targetTime))
+                    .FirstOrDefault();
+            }
 
             if (point != null)
             {
@@ -803,8 +936,8 @@ namespace Analyzer.ViewModels
             if (Sections != null && Sections.Length > 0)
             {
                 var cursorSection = Sections.Last();
-                cursorSection.Xi = timeInSeconds;
-                cursorSection.Xj = timeInSeconds;
+                cursorSection.Xi = timeOrDist;
+                cursorSection.Xj = timeOrDist;
             }
         }
 

@@ -12,6 +12,7 @@ namespace Analyzer.Models
         
         // Données précises pour l'interpolation
         public double StartTimeMs { get; set; }
+        public double StartDistance { get; set; }
         public double LapTimeMs { get; set; }
 
         public double MaxSpeed { get; set; }
@@ -21,6 +22,8 @@ namespace Analyzer.Models
         public float MaxAccel { get; set; }
         public float MaxDecel { get; set; }
         public string[] Partials { get; set; }
+        public double[] PartialDistances { get; set; }
+        public double[] CumulativePartialTimesMs { get; set; }
 
         private bool _isBestLap;
         public bool IsBestLap { get => _isBestLap; set => SetProperty(ref _isBestLap, value); }

@@ -62,6 +62,20 @@ namespace Analyzer.Services
 
             double durationMs = endTimeMs - startTimeMs;
             double cumulativeMs = endTimeMs - allPoints[0].Time;
+            double startDist = 0;
+            if (startIndex > 0)
+            {
+                var pPrev = allPoints[startIndex - 1];
+                var pCurr = allPoints[startIndex];
+                double totalTime = pCurr.Time - pPrev.Time;
+                if (totalTime > 0)
+                {
+                    double fraction = (startTimeMs - pPrev.Time) / totalTime;
+                    startDist = pPrev.Distance + (pCurr.Distance - pPrev.Distance) * fraction;
+                }
+                else startDist = pCurr.Distance;
+            }
+            else startDist = allPoints[0].Distance;
 
             var lap = new LapData
             {
@@ -71,6 +85,7 @@ namespace Analyzer.Services
                 LapTime = isPartial ? "-" : FormatTime((long)durationMs),
                 LapTimeMs = durationMs,
                 StartTimeMs = startTimeMs,
+                StartDistance = startDist,
                 MaxSpeed = lapPoints.Max(p => p.Speed),
                 MinSpeed = lapPoints.Min(p => p.Speed),
                 MaxLeanLeft = lapPoints.Max(p => p.LeanAngle < 0 ? -p.LeanAngle : 0),
@@ -87,8 +102,11 @@ namespace Analyzer.Services
 
             int partialCount = Math.Max(4, partialMarkers.Count + 1);
             lap.Partials = new string[partialCount];
-            for (int i = 0; i < partialCount; i++) lap.Partials[i] = "-";
+            lap.PartialDistances = new double[partialCount];
+            lap.CumulativePartialTimesMs = new double[partialCount];
+            for (int i = 0; i < partialCount; i++) { lap.Partials[i] = "-"; lap.PartialDistances[i] = 0; lap.CumulativePartialTimesMs[i] = 0; }
 
+            double startDistForPartials = lap.StartDistance;
             double previousTimeMs = startTimeMs;
             bool allPartialsFound = true;
 
@@ -113,6 +131,16 @@ namespace Analyzer.Services
                     double exactSplitTimeMs = GetInterpolatedTime(allPoints[bestIdx], allPoints[bestIdx+1], marker);
                     double splitDuration = exactSplitTimeMs - previousTimeMs;
                     lap.Partials[pIdx] = FormatTime((long)splitDuration);
+                    
+                    // Calcul de la distance interpolée au marqueur
+                    double d1 = CalculateDistance(allPoints[bestIdx].Latitude, allPoints[bestIdx].Longitude, marker.Latitude, marker.Longitude);
+                    double d2 = CalculateDistance(allPoints[bestIdx+1].Latitude, allPoints[bestIdx+1].Longitude, marker.Latitude, marker.Longitude);
+                    double fraction = d1 / (d1 + d2);
+                    double exactDist = allPoints[bestIdx].Distance + (allPoints[bestIdx+1].Distance - allPoints[bestIdx].Distance) * fraction;
+                    
+                    lap.PartialDistances[pIdx] = exactDist - startDistForPartials;
+                    lap.CumulativePartialTimesMs[pIdx] = exactSplitTimeMs - startTimeMs;
+                    
                     previousTimeMs = exactSplitTimeMs;
                 }
                 else
@@ -128,6 +156,8 @@ namespace Analyzer.Services
                 if (partialMarkers.Count < partialCount)
                 {
                     lap.Partials[partialMarkers.Count] = FormatTime((long)lastSplitMs);
+                    lap.PartialDistances[partialMarkers.Count] = (lapPoints.Last().Distance - startDistForPartials);
+                    lap.CumulativePartialTimesMs[partialMarkers.Count] = endTimeMs - startTimeMs;
                 }
             }
 

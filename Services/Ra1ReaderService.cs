@@ -48,9 +48,30 @@ namespace Analyzer.Services
 
                     points.Add(point);
                 }
+
+                // Calcul des distances cumulées
+                float totalDistance = 0;
+                for (int i = 1; i < points.Count; i++)
+                {
+                    var p1 = points[i - 1];
+                    var p2 = points[i];
+                    totalDistance += (float)CalculateDistance(p1.Latitude, p1.Longitude, p2.Latitude, p2.Longitude);
+                    p2.Distance = totalDistance;
+                }
             }
 
             return points;
+        }
+
+        private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
+        {
+            double dLat = (lat2 - lat1) * Math.PI / 180.0;
+            double dLon = (lon2 - lon1) * Math.PI / 180.0;
+            double a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                        Math.Cos(lat1 * Math.PI / 180.0) * Math.Cos(lat2 * Math.PI / 180.0) *
+                        Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+            double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+            return 6371.0 * c * 1000.0; // En mètres
         }
     }
 }

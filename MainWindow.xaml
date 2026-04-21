@@ -143,7 +143,7 @@
                     <!-- Design Settings -->
                     <TabItem Header="PARAMÈTRES" Style="{StaticResource RibbonTabItemStyle}">
                         <Border Background="#2d3748" CornerRadius="4" Margin="0,5,0,10" Padding="20,12">
-                            <UniformGrid Columns="4">
+                            <UniformGrid Columns="5">
                                 <!-- Speed Settings -->
                                 <StackPanel Margin="0,0,20,0">
                                     <TextBlock Text="VITESSE (HEX)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
@@ -166,10 +166,33 @@
                                 </StackPanel>
 
                                 <!-- Reference Settings -->
-                                <StackPanel>
+                                <StackPanel Margin="0,0,20,0">
                                     <TextBlock Text="RÉFÉRENCE (HEX)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
                                     <TextBox Text="{Binding RefColor, UpdateSourceTrigger=PropertyChanged}" FontSize="12" Background="#1a202c" Foreground="White" BorderBrush="#4a5568" Height="24" VerticalContentAlignment="Center"/>
                                     <Slider Minimum="0.5" Maximum="5" Value="{Binding RefThickness}" Margin="0,6,0,0"/>
+                                </StackPanel>
+
+                                <!-- Comparison Range Settings -->
+                                <StackPanel>
+                                    <TextBlock Text="ÉPAYS. COMP. (RAPIDE/LENT)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,5,0">
+                                            <Slider Minimum="0.1" Maximum="3" Value="{Binding CompFastThickness}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Margin="5,0,0,0">
+                                            <Slider Minimum="0.1" Maximum="3" Value="{Binding CompSlowThickness}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <TextBlock FontSize="10" Foreground="White" HorizontalAlignment="Center" Margin="0,2,0,0">
+                                        <Run Text="{Binding CompFastThickness, StringFormat='{}{0:F1}', Mode=OneWay}"/>
+                                        <Run Text=" (Rap.) - "/>
+                                        <Run Text="{Binding CompSlowThickness, StringFormat='{}{0:F1}', Mode=OneWay}"/>
+                                        <Run Text=" (Lent)"/>
+                                    </TextBlock>
                                 </StackPanel>
                             </UniformGrid>
                         </Border>
@@ -391,10 +414,41 @@
 
                                         <!-- Main Combined Chart with Border optimized -->
                                         <Border Grid.Row="1" BorderBrush="#334155" BorderThickness="1" CornerRadius="4" Margin="10">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <lvc:CartesianChart Grid.Column="0" 
+                                                                   Series="{Binding TelemetrySeries}" 
+                                                                   XAxes="{Binding XAxes}" 
+                                                                   YAxes="{Binding YAxes}" 
+                                                                   Sections="{Binding Sections}"
+                                                                   LegendPosition="Hidden"
+                                                                   MouseMove="Chart_PointerMove"
+                                                                   Margin="0"/>
+                                                <ItemsControl Grid.Column="1" ItemsSource="{Binding LegendEntries}" Margin="10,20,15,0">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10" VerticalAlignment="Center">
+                                                                <Border Width="8" Height="8" CornerRadius="4" Background="{Binding Color}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                                                <StackPanel VerticalAlignment="Center">
+                                                                    <TextBlock Text="{Binding Label}" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+                                                                    <TextBlock Text="{Binding LapTime}" Foreground="#94a3b8" FontSize="9"/>
+                                                                </StackPanel>
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </Grid>
+                                        </Border>
+                                        <Border Grid.Row="1" Visibility="Collapsed">
                                             <lvc:CartesianChart Series="{Binding TelemetrySeries}" 
                                                                XAxes="{Binding XAxes}" 
                                                                YAxes="{Binding YAxes}" 
                                                                Sections="{Binding Sections}"
+                                                               LegendPosition="Right"
+                                                               LegendTextPaint="{Binding LegendTextPaint}"
                                                                MouseMove="Chart_PointerMove"
                                                                Margin="0"/>
                                         </Border>
