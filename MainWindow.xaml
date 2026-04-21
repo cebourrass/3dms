@@ -100,7 +100,7 @@
                         <Border Background="#334155" CornerRadius="4" Padding="10,4">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="SESSION : " Foreground="#94a3b8" FontSize="11" FontWeight="SemiBold"/>
-                                <TextBlock Text="{Binding CurrentSession.Name, FallbackValue='AUCUNE'}" Foreground="White" FontSize="11" FontWeight="Bold"/>
+                                <TextBlock Text="{Binding CurrentSession.Title, FallbackValue='AUCUNE'}" Foreground="White" FontSize="11" FontWeight="Bold"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>

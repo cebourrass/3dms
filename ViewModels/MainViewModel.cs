@@ -118,6 +118,9 @@ namespace Analyzer.ViewModels
         private float _currentAccel;
         public float CurrentAccel { get => _currentAccel; set => SetProperty(ref _currentAccel, value); }
 
+        // Cache pour la détection rapide par dossier
+        private readonly Dictionary<string, CircuitMetadata> _directoryCircuitCache = new();
+
         public ObservableCollection<LegendEntry> LegendEntries { get; } = new();
 
         public SolidColorPaint LegendTextPaint { get; } = new SolidColorPaint(new SKColor(200, 200, 200));
@@ -505,10 +508,15 @@ namespace Analyzer.ViewModels
             var points = _readerService.ReadFile(filePath);
             if (points == null || !points.Any()) return;
 
-            // Clear session-specific state
+            // Clear previous session state completely
+            Laps.Clear();
             ReferenceLap = null;
             ComparisonLaps.Clear();
             _currentLapPoints.Clear();
+            BestLapTime = "--:--.--";
+            IdealLapTime = "--:--.--";
+            CircuitName = "Chargement...";
+            TrajectoryPoints = new System.Windows.Media.PointCollection();
 
             var fileName = System.IO.Path.GetFileNameWithoutExtension(filePath);
             var session = new SessionData
@@ -522,17 +530,29 @@ namespace Analyzer.ViewModels
             SessionTitle = session.Title;
             CurrentSession = session; // Set early so ApplyCircuit can use it
 
-            // Circuit Detection
-            var detected = DetectCircuit(points);
+            // Circuit Detection avec Cache par dossier
+            string directory = System.IO.Path.GetDirectoryName(filePath) ?? "";
+            CircuitMetadata? detected = null;
+
+            if (_directoryCircuitCache.TryGetValue(directory, out var cached))
+            {
+                detected = cached;
+            }
+            else
+            {
+                detected = DetectCircuit(points);
+                if (detected != null) _directoryCircuitCache[directory] = detected;
+            }
+
             if (detected != null)
             {
-                _selectedCircuit = detected; // Use field to avoid re-triggering ApplyCircuit twice
+                _selectedCircuit = detected; 
                 OnPropertyChanged(nameof(SelectedCircuit));
                 ApplyCircuit(detected.FilePath);
             }
             else
             {
-                // Fallback to name detection if GPS fails or as secondary check
+                // Fallback to name detection
                 string? mapFile = FindMatchingMap(filePath);
                 if (mapFile != null)
                 {
@@ -550,6 +570,11 @@ namespace Analyzer.ViewModels
         {
             if (CurrentSession == null) return;
 
+            // Mettre à jour le cache pour ce dossier pour les prochains fichiers
+            string directory = System.IO.Path.GetDirectoryName(CurrentSession.FilePath) ?? "";
+            var circuit = AvailableCircuits.FirstOrDefault(c => c.FilePath == mapFilePath);
+            if (circuit != null) _directoryCircuitCache[directory] = circuit;
+            
             CurrentSession.MapFilePath = mapFilePath;
             CurrentSession.CircuitMap = _mapReaderService.ReadMap(mapFilePath);
             
@@ -684,7 +709,12 @@ namespace Analyzer.ViewModels
 
         public void UpdateTelemetryCharts()
         {
-            if (SelectedLap == null || CurrentSession == null) return;
+            if (SelectedLap == null || CurrentSession == null)
+            {
+                TelemetrySeries = Array.Empty<ISeries>();
+                LegendEntries.Clear();
+                return;
+            }
 
             bool useDistance = (ComparisonLaps.Count > 1 || (ShowReference && ReferenceLap != null));
 
