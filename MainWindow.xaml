@@ -11,7 +11,7 @@
         mc:Ignorable="d"
         ui:WindowHelper.UseModernWindowStyle="True"
         ui:ThemeManager.RequestedTheme="Dark"
-        Title="3DMS Pro Analyzer" Height="800" Width="1200"
+        Title="3DMS by #79" Height="800" Width="1200"
         Background="#1e1e1e">
     
     <Window.Resources>
@@ -22,6 +22,10 @@
                 <DataTrigger Binding="{Binding IsBestLap}" Value="True">
                     <Setter Property="Background" Value="#005a9e"/>
                     <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsReference}" Value="True">
+                    <Setter Property="BorderBrush" Value="White"/>
+                    <Setter Property="BorderThickness" Value="1"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -57,16 +61,130 @@
                 <TextBlock Text="{Binding Name}"/>
             </StackPanel>
         </DataTemplate>
+        <Style x:Key="RibbonTabItemStyle" TargetType="TabItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Grid x:Name="Panel" Background="Transparent" Margin="0,0,10,0">
+                            <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" Margin="15,8"/>
+                            <Border x:Name="Indicator" VerticalAlignment="Bottom" Height="2" Background="Transparent"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Indicator" Property="Background" Value="#38bdf8"/>
+                                <Setter Property="Foreground" Value="#38bdf8"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Panel" Property="Background" Value="#2d3748"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
-    <Grid>
-        <ui:NavigationView x:Name="NavView" 
-                          IsSettingsVisible="True"
-                          PaneDisplayMode="Left"
-                          IsBackButtonVisible="Collapsed">
+    <Grid Background="#0f172a">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Global Ribbon Header -->
+            <RowDefinition Height="*"/>    <!-- Main Content (NavView + Docking) -->
+        </Grid.RowDefinitions>
+
+        <!-- Dynamic Ribbon Header -->
+        <Border Grid.Row="0" Background="#1e293b" BorderBrush="#334155" BorderThickness="0,0,0,1">
+            <StackPanel>
+                <!-- Application Title Bar -->
+                <Grid Margin="20,10">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Border Background="#334155" CornerRadius="4" Padding="10,4">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="SESSION : " Foreground="#94a3b8" FontSize="11" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding CurrentSession.Name, FallbackValue='AUCUNE'}" Foreground="White" FontSize="11" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Navigation Tabs -->
+                <TabControl Background="Transparent" BorderThickness="0" Margin="15,0,15,5">
+                    <!-- Session / Files -->
+                    <TabItem Header="SESSION" Style="{StaticResource RibbonTabItemStyle}">
+                        <Border Background="#2d3748" CornerRadius="4" Margin="0,5,0,10" Padding="15,12">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Click="OpenSession_Click" Padding="20,8" Background="#0284c7" BorderThickness="0" ui:ControlHelper.CornerRadius="4">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:SymbolIcon Symbol="OpenFile" Margin="0,0,10,0" Foreground="White" />
+                                        <TextBlock Text="Ouvrir une session" Foreground="White" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Button>
+                                <Rectangle Width="1" Height="30" Fill="#444" Margin="20,0"/>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Circuit détecté :" FontSize="10" Foreground="#94a3b8"/>
+                                    <TextBlock Text="{Binding CircuitName}" Foreground="White" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </TabItem>
+
+                    <!-- View Controls -->
+                    <TabItem Header="VUE" Style="{StaticResource RibbonTabItemStyle}">
+                        <Border Background="#2d3748" CornerRadius="4" Margin="0,5,0,10" Padding="20,12">
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox Content="Tableau des Tours" IsChecked="{Binding IsLapsVisible, Mode=TwoWay}" Margin="0,0,25,0" Foreground="White" FontWeight="SemiBold"/>
+                                <CheckBox Content="Infos Session" IsChecked="{Binding IsSessionInfoVisible, Mode=TwoWay}" Margin="0,0,25,0" Foreground="White" FontWeight="SemiBold"/>
+                                <CheckBox Content="Carte &amp; Tracé" IsChecked="{Binding IsMapVisible, Mode=TwoWay}" Margin="0,0,25,0" Foreground="White" FontWeight="SemiBold"/>
+                                <Rectangle Width="1" Height="30" Fill="#444" Margin="0,0,25,0"/>
+                                <CheckBox Content="Graphiques" IsChecked="{Binding IsChartsVisible, Mode=TwoWay}" Foreground="White" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+                    </TabItem>
+
+                    <!-- Design Settings -->
+                    <TabItem Header="PARAMÈTRES" Style="{StaticResource RibbonTabItemStyle}">
+                        <Border Background="#2d3748" CornerRadius="4" Margin="0,5,0,10" Padding="20,12">
+                            <UniformGrid Columns="4">
+                                <!-- Speed Settings -->
+                                <StackPanel Margin="0,0,20,0">
+                                    <TextBlock Text="VITESSE (HEX)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding SpeedColor, UpdateSourceTrigger=PropertyChanged}" FontSize="12" Background="#1a202c" Foreground="White" BorderBrush="#4a5568" Height="24" VerticalContentAlignment="Center"/>
+                                    <Slider Minimum="0.5" Maximum="5" Value="{Binding SpeedThickness}" Margin="0,6,0,0"/>
+                                </StackPanel>
+                                
+                                <!-- Angle Settings -->
+                                <StackPanel Margin="0,0,20,0">
+                                    <TextBlock Text="ANGLE (HEX)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding AngleColor, UpdateSourceTrigger=PropertyChanged}" FontSize="12" Background="#1a202c" Foreground="White" BorderBrush="#4a5568" Height="24" VerticalContentAlignment="Center"/>
+                                    <Slider Minimum="0.5" Maximum="5" Value="{Binding AngleThickness}" Margin="0,6,0,0"/>
+                                </StackPanel>
+
+                                <!-- Accel Settings -->
+                                <StackPanel Margin="0,0,20,0">
+                                    <TextBlock Text="ACCEL (HEX)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding AccelColor, UpdateSourceTrigger=PropertyChanged}" FontSize="12" Background="#1a202c" Foreground="White" BorderBrush="#4a5568" Height="24" VerticalContentAlignment="Center"/>
+                                    <Slider Minimum="0.5" Maximum="5" Value="{Binding AccelThickness}" Margin="0,6,0,0"/>
+                                </StackPanel>
+
+                                <!-- Reference Settings -->
+                                <StackPanel>
+                                    <TextBlock Text="RÉFÉRENCE (HEX)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding RefColor, UpdateSourceTrigger=PropertyChanged}" FontSize="12" Background="#1a202c" Foreground="White" BorderBrush="#4a5568" Height="24" VerticalContentAlignment="Center"/>
+                                    <Slider Minimum="0.5" Maximum="5" Value="{Binding RefThickness}" Margin="0,6,0,0"/>
+                                </StackPanel>
+                            </UniformGrid>
+                        </Border>
+                    </TabItem>
+                </TabControl>
+            </StackPanel>
+        </Border>
+
+        <ui:NavigationView Grid.Row="1" x:Name="NavView" 
+                           IsSettingsVisible="False"
+                           PaneDisplayMode="Left"
+                           IsBackButtonVisible="Collapsed">
             
             <ui:NavigationView.PaneHeader>
-                <TextBlock Text="Sessions 3DMS" Margin="12,12,0,12" FontWeight="Bold" FontSize="16"/>
+                <TextBlock Text="Explorateur" Margin="12,12,0,12" FontWeight="Bold" FontSize="14" Foreground="#94a3b8"/>
             </ui:NavigationView.PaneHeader>
 
             <ui:NavigationView.PaneCustomContent>
@@ -75,49 +193,24 @@
                 </TreeView>
             </ui:NavigationView.PaneCustomContent>
 
-            <Grid Margin="24">
+            <Grid Margin="12,0,12,12">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <!-- Menu Bar -->
-                <Menu Grid.Row="0" Background="Transparent" Margin="0,0,0,16">
-                    <MenuItem Header="VUE" FontSize="12" FontWeight="SemiBold">
-                        <MenuItem Header="Tableau des Tours" IsCheckable="True" IsChecked="{Binding IsLapsVisible, Mode=TwoWay}" Checked="Pane_Checked" Unchecked="Pane_Unchecked" Tag="LapsPane"/>
-                        <MenuItem Header="Infos Session" IsCheckable="True" IsChecked="{Binding IsSessionInfoVisible, Mode=TwoWay}" Checked="Pane_Checked" Unchecked="Pane_Unchecked" Tag="SessionInfoPane"/>
-                        <MenuItem Header="Carte &amp; Tracé" IsCheckable="True" IsChecked="{Binding IsMapVisible, Mode=TwoWay}" Checked="Pane_Checked" Unchecked="Pane_Unchecked" Tag="MapPane"/>
-                        <Separator/>
-                        <MenuItem Header="Graphiques Télémétriques" IsCheckable="True" IsChecked="{Binding IsChartsVisible, Mode=TwoWay}" Checked="Pane_Checked" Unchecked="Pane_Unchecked" Tag="ChartsPane"/>
-                    </MenuItem>
-                </Menu>
-
-                <!-- Header -->
-                <Grid Grid.Row="1" Margin="0,0,0,24">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0">
-                        <TextBlock Text="{Binding SessionTitle}" Style="{DynamicResource HeaderTextBlockStyle}" Foreground="{DynamicResource SystemControlHighlightAccentBrush}"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                            <Border Background="#007acc" CornerRadius="10" Padding="8,2" Margin="0,0,8,0">
-                                <TextBlock Text="{Binding BestLapTime}" Foreground="White" FontWeight="Bold"/>
-                            </Border>
-                            <TextBlock Text="Meilleur Tour" VerticalAlignment="Center" Opacity="0.7" Margin="0,0,24,0"/>
-
-                            <Border Background="#2d2d2d" CornerRadius="10" BorderBrush="#007acc" BorderThickness="1" Padding="8,2" Margin="0,0,8,0">
-                                <TextBlock Text="{Binding IdealLapTime}" Foreground="#007acc" FontWeight="Bold"/>
-                            </Border>
-                            <TextBlock Text="Temps Idéal" VerticalAlignment="Center" Opacity="0.7"/>
-                        </StackPanel>
+                <!-- Mini Session Summary Header -->
+                <Grid Grid.Row="0" Margin="0,10,0,15">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding SessionTitle}" FontSize="24" FontWeight="Bold" Foreground="White"/>
+                        <Border Background="#0284c7" CornerRadius="4" Padding="12,4" Margin="20,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding BestLapTime}" Foreground="White" FontWeight="Bold" FontSize="14"/>
+                        </Border>
                     </StackPanel>
-                    <Button Grid.Column="1" Content="Ouvrir une session..." Click="OpenSession_Click" ui:ControlHelper.PlaceholderText="Charger un fichier .ra1"/>
                 </Grid>
 
                 <!-- Content Area -->
-                <dock:DockingManager Grid.Row="2">
+                <dock:DockingManager Grid.Row="1" x:Name="DockManager">
                     <dock:LayoutRoot>
                         <dock:LayoutPanel Orientation="Vertical">
                             <dock:LayoutPanel Orientation="Horizontal">
@@ -126,13 +219,21 @@
                                     <dock:LayoutAnchorable x:Name="LapsPane" ContentId="LapsPane" Title="Tableau des Tours" CanClose="False" IsVisibleChanged="Pane_IsVisibleChanged">
                                         <DataGrid ItemsSource="{Binding Laps}" 
                                                   SelectedItem="{Binding SelectedLap}"
+                                                  SelectionMode="Extended"
+                                                  SelectionChanged="DataGrid_SelectionChanged"
                                                   AutoGenerateColumns="False" 
                                                   IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
                                                   CanUserReorderColumns="False" CanUserResizeRows="False"
-                                                  Background="Transparent" BorderThickness="0" SelectionMode="Single"
+                                                  Background="Transparent" BorderThickness="0"
                                                   RowStyle="{StaticResource BestLapRowStyle}"
                                                   HorizontalGridLinesBrush="#333" GridLinesVisibility="Horizontal"
                                                   HeadersVisibility="Column" RowBackground="Transparent">
+                                            <DataGrid.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="Définir comme RÉFÉRENCE" Command="{Binding SetReferenceCommand}"/>
+                                                    <MenuItem Header="Effacer la référence" Command="{Binding ClearReferenceCommand}"/>
+                                                </ContextMenu>
+                                            </DataGrid.ContextMenu>
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="Tour" Binding="{Binding Number}" Width="50" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
                                                 <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="80"/>
@@ -276,7 +377,9 @@
                                         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10,5">
                                             <CheckBox Content="Vitesse" IsChecked="{Binding ShowSpeed}" Foreground="Cyan" Margin="0,0,20,0"/>
                                             <CheckBox Content="Angle" IsChecked="{Binding ShowAngle}" Foreground="Yellow" Margin="0,0,20,0"/>
-                                            <CheckBox Content="G (Accel)" IsChecked="{Binding ShowAccel}" Foreground="Magenta"/>
+                                            <CheckBox Content="G (Accel)" IsChecked="{Binding ShowAccel}" Foreground="Magenta" Margin="0,0,20,0"/>
+                                            <Rectangle Width="1" Height="16" Fill="#444" Margin="0,0,20,0"/>
+                                            <CheckBox Content="RÉFÉRENCE" IsChecked="{Binding ShowReference}" Foreground="White" FontWeight="Bold"/>
                                         </StackPanel>
 
                                         <!-- Main Combined Chart with Border optimized -->

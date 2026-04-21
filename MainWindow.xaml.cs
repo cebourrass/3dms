@@ -73,6 +73,22 @@ namespace Analyzer
             }
         }
 
+        private void DataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is DataGrid dg && DataContext is ViewModels.MainViewModel vm)
+            {
+                vm.ComparisonLaps.Clear();
+                foreach (var item in dg.SelectedItems)
+                {
+                    if (item is Models.LapData lap)
+                    {
+                        vm.ComparisonLaps.Add(lap);
+                    }
+                }
+                vm.UpdateTelemetryCharts();
+            }
+        }
+
         private void Chart_PointerMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             var chart = (CartesianChart)sender;

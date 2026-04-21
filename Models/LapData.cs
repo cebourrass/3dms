@@ -36,5 +36,11 @@ namespace Analyzer.Models
 
         private bool _isMaxAccel;
         public bool IsMaxAccel { get => _isMaxAccel; set => SetProperty(ref _isMaxAccel, value); }
+
+        private bool _isReference;
+        public bool IsReference { get => _isReference; set => SetProperty(ref _isReference, value); }
+
+        private bool _isCompared;
+        public bool IsCompared { get => _isCompared; set => SetProperty(ref _isCompared, value); }
     }
 }

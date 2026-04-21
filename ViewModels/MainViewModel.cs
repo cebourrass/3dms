@@ -41,6 +41,39 @@ namespace Analyzer.ViewModels
             set => SetProperty(ref _sections, value);
         }
 
+        private LapData? _referenceLap;
+        public LapData? ReferenceLap
+        {
+            get => _referenceLap;
+            set => SetProperty(ref _referenceLap, value);
+        }
+
+        private bool _showReference = true;
+        public bool ShowReference { get => _showReference; set { if (SetProperty(ref _showReference, value)) UpdateTelemetryCharts(); } }
+
+        public List<LapData> ComparisonLaps { get; set; } = new();
+
+        // Paramètres de style (Onglet Paramètres)
+        private string _speedColor = "#10b981"; // Emerald
+        public string SpeedColor { get => _speedColor; set { if (SetProperty(ref _speedColor, value)) UpdateTelemetryCharts(); } }
+        private float _speedThickness = 1.8f;
+        public float SpeedThickness { get => _speedThickness; set { if (SetProperty(ref _speedThickness, value)) UpdateTelemetryCharts(); } }
+
+        private string _angleColor = "#fbbf24"; // Amber
+        public string AngleColor { get => _angleColor; set { if (SetProperty(ref _angleColor, value)) UpdateTelemetryCharts(); } }
+        private float _angleThickness = 1.8f;
+        public float AngleThickness { get => _angleThickness; set { if (SetProperty(ref _angleThickness, value)) UpdateTelemetryCharts(); } }
+
+        private string _accelColor = "#8b5cf6"; // Violet
+        public string AccelColor { get => _accelColor; set { if (SetProperty(ref _accelColor, value)) UpdateTelemetryCharts(); } }
+        private float _accelThickness = 1.8f;
+        public float AccelThickness { get => _accelThickness; set { if (SetProperty(ref _accelThickness, value)) UpdateTelemetryCharts(); } }
+
+        private string _refColor = "#ffffff"; // White
+        public string RefColor { get => _refColor; set { if (SetProperty(ref _refColor, value)) UpdateTelemetryCharts(); } }
+        private float _refThickness = 1.2f;
+        public float RefThickness { get => _refThickness; set { if (SetProperty(ref _refThickness, value)) UpdateTelemetryCharts(); } }
+
         private bool _showSpeed = true;
         public bool ShowSpeed { get => _showSpeed; set { if (SetProperty(ref _showSpeed, value)) UpdateTelemetryCharts(); } }
         
@@ -333,6 +366,27 @@ namespace Analyzer.ViewModels
         }
 
         [RelayCommand]
+        public void SetReference()
+        {
+            if (SelectedLap == null) return;
+            
+            // Unset old reference formatting
+            foreach (var l in Laps) l.IsReference = false;
+            
+            ReferenceLap = SelectedLap;
+            ReferenceLap.IsReference = true;
+            UpdateTelemetryCharts();
+        }
+
+        [RelayCommand]
+        public void ClearReference()
+        {
+            if (ReferenceLap != null) ReferenceLap.IsReference = false;
+            ReferenceLap = null;
+            UpdateTelemetryCharts();
+        }
+
+        [RelayCommand]
         public void LoadSession(string filePath)
         {
             var points = _readerService.ReadFile(filePath);
@@ -427,29 +481,28 @@ namespace Analyzer.ViewModels
             }
         }
 
-        private void UpdateTelemetryCharts()
+        private void AddLapSeries(List<ISeries> seriesList, LapData lap, string suffix, float thicknessOverride, SKColor? overrideColor)
         {
-            if (SelectedLap == null || CurrentSession == null) return;
-
-            var start = SelectedLap.StartTimeMs;
-            var end = start + SelectedLap.LapTimeMs;
-
-            _currentLapPoints = CurrentSession.AllPoints
+            var start = lap.StartTimeMs;
+            var end = start + lap.LapTimeMs;
+            var points = CurrentSession!.AllPoints
                 .Where(p => p.Time >= start && p.Time <= end)
                 .OrderBy(p => p.Time)
                 .ToList();
 
-            if (!_currentLapPoints.Any()) return;
+            if (!points.Any()) return;
 
-            var seriesList = new List<ISeries>();
+            // Mise à jour des points actuels pour le curseur (si c'est le tour sélectionné)
+            if (lap == SelectedLap) _currentLapPoints = points;
 
             if (ShowSpeed)
             {
+                float thickness = thicknessOverride > 0 ? thicknessOverride : SpeedThickness;
                 seriesList.Add(new LineSeries<ObservablePoint>
                 {
-                    Values = _currentLapPoints.Select(p => new ObservablePoint((p.Time - start) / 1000.0, (double)p.Speed)).ToArray(),
-                    Name = "Vitesse",
-                    Stroke = new SolidColorPaint(new SKColor(16, 185, 129), 1.5f), // Emerald
+                    Values = points.Select(p => new ObservablePoint((p.Time - start) / 1000.0, (double)p.Speed)).ToArray(),
+                    Name = $"{suffix} Vitesse",
+                    Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(SpeedColor), thickness),
                     GeometrySize = 0,
                     Fill = null
                 });
@@ -457,11 +510,12 @@ namespace Analyzer.ViewModels
 
             if (ShowAngle)
             {
+                float thickness = thicknessOverride > 0 ? thicknessOverride : AngleThickness;
                 seriesList.Add(new LineSeries<ObservablePoint>
                 {
-                    Values = _currentLapPoints.Select(p => new ObservablePoint((p.Time - start) / 1000.0, (double)Math.Abs(p.LeanAngle))).ToArray(),
-                    Name = "Angle",
-                    Stroke = new SolidColorPaint(new SKColor(251, 191, 36), 1.5f), // Amber
+                    Values = points.Select(p => new ObservablePoint((p.Time - start) / 1000.0, (double)Math.Abs(p.LeanAngle))).ToArray(),
+                    Name = $"{suffix} Angle",
+                    Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(AngleColor), thickness),
                     GeometrySize = 0,
                     Fill = null
                 });
@@ -469,22 +523,47 @@ namespace Analyzer.ViewModels
 
             if (ShowAccel)
             {
+                float thickness = thicknessOverride > 0 ? thicknessOverride : AccelThickness;
                 seriesList.Add(new LineSeries<ObservablePoint>
                 {
-                    // On multiplie l'accel par 50 pour qu'elle soit visible sur la même échelle (0-200 km/h) ?
-                    // Non, mieux vaut utiliser ce que l'utilisateur demande. S'ils superposent 1.2g avec 200km/h, on ne verra rien.
-                    // Je vais multiplier par 50 pour que 2g = 100.
-                    Values = _currentLapPoints.Select(p => new ObservablePoint((p.Time - start) / 1000.0, (double)p.Acceleration * 50)).ToArray(),
-                    Name = "G (x50)",
-                    Stroke = new SolidColorPaint(new SKColor(139, 92, 246), 1.5f), // Violet
+                    Values = points.Select(p => new ObservablePoint((p.Time - start) / 1000.0, (double)p.Acceleration * 50)).ToArray(),
+                    Name = $"{suffix} G",
+                    Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(AccelColor), thickness),
                     GeometrySize = 0,
                     Fill = null
                 });
             }
+        }
+
+        public void UpdateTelemetryCharts()
+        {
+            if (SelectedLap == null || CurrentSession == null) return;
+
+            var seriesList = new List<ISeries>();
+
+            // 1. Affichage de la RÉFÉRENCE (si active)
+            if (ShowReference && ReferenceLap != null)
+            {
+                AddLapSeries(seriesList, ReferenceLap, "[REF]", RefThickness, SKColor.Parse(RefColor).WithAlpha(80));
+            }
+
+            // 2. Affichage des tours de COMPARAISON (multi-sélection)
+            int comparisonIndex = 0;
+            var comparisonColors = new[] { SKColors.SlateBlue, SKColors.DarkCyan, SKColors.DarkGoldenrod };
+            foreach (var lap in ComparisonLaps)
+            {
+                if (lap == SelectedLap || lap == ReferenceLap) continue;
+                var color = comparisonColors[comparisonIndex % comparisonColors.Length].WithAlpha(100);
+                AddLapSeries(seriesList, lap, $"T{lap.Number}", 1.0f, color);
+                comparisonIndex++;
+            }
+
+            // 3. Affichage du tour ACTUEL (SelectedLap)
+            AddLapSeries(seriesList, SelectedLap, "", 0, null); // thickness 0 means use properties below
 
             TelemetrySeries = seriesList.ToArray();
 
-            // Création des sections (barres verticales pour les partiels)
+            // Création des sections (barres verticales pour les partiels du tour ACTUEL)
             var sectionsList = new List<RectangularSection>();
             double cumulativeMs = 0;
             if (SelectedLap.Partials != null)
@@ -510,7 +589,6 @@ namespace Analyzer.ViewModels
                             Stroke = new SolidColorPaint(SKColors.White.WithAlpha(40), 1)
                         };
 
-                        // On n'affiche pas le label (P...) pour le tout dernier partiel (ligne d'arrivée)
                         if (i < SelectedLap.Partials.Length - 1)
                         {
                             section.Label = $"P{i + 1}";
@@ -589,8 +667,6 @@ namespace Analyzer.ViewModels
             });
 
             Sections = sectionsList.ToArray();
-            
-            // On force une mise à jour des valeurs du curseur au début par défaut
             UpdateCursor(0);
         }
 
