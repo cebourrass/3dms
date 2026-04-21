@@ -11,9 +11,17 @@ using System.Collections.ObjectModel;
 using Analyzer.Services;
 using Analyzer.Models;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Analyzer.ViewModels
 {
+    public class CircuitMetadata
+    {
+        public string Name { get; set; } = string.Empty;
+        public string FilePath { get; set; } = string.Empty;
+        public GpsPoint? StartPoint { get; set; }
+        public override string ToString() => Name;
+    }
     public partial class MainViewModel : ObservableObject
     {
         private readonly Ra1ReaderService _readerService = new Ra1ReaderService();
@@ -144,6 +152,22 @@ namespace Analyzer.ViewModels
             set => SetProperty(ref _circuitName, value);
         }
 
+        private ObservableCollection<CircuitMetadata> _availableCircuits = new();
+        public ObservableCollection<CircuitMetadata> AvailableCircuits => _availableCircuits;
+
+        private CircuitMetadata? _selectedCircuit;
+        public CircuitMetadata? SelectedCircuit
+        {
+            get => _selectedCircuit;
+            set
+            {
+                if (SetProperty(ref _selectedCircuit, value) && value != null && CurrentSession != null)
+                {
+                    ApplyCircuit(value.FilePath);
+                }
+            }
+        }
+
         private ObservableCollection<string> _pilots = new ObservableCollection<string> { "Cédric Bourrassier", "Invité" };
         public ObservableCollection<string> Pilots => _pilots;
 
@@ -254,6 +278,7 @@ namespace Analyzer.ViewModels
 
         public MainViewModel()
         {
+            LoadAvailableCircuits();
             LoadExplorer();
             LoadDummyLaps();
 
@@ -292,7 +317,76 @@ namespace Analyzer.ViewModels
             ExplorerItems.Add(rootFolder);
         }
 
-        private SessionItem FindFirstSession(IEnumerable<ExplorerItem> items)
+        private void LoadAvailableCircuits()
+        {
+            _availableCircuits.Clear();
+            string mapsRoot = @"C:\dev\3DMS-CED\Map\Circuits";
+            if (!Directory.Exists(mapsRoot)) return;
+
+            foreach (var countryDir in Directory.GetDirectories(mapsRoot))
+            {
+                foreach (var mapFile in Directory.GetFiles(countryDir, "*.map"))
+                {
+                    try
+                    {
+                        // Optimization: just read enough to get the Start marker
+                        var map = _mapReaderService.ReadMap(mapFile);
+                        var startMarker = map.Markers.FirstOrDefault(m => m.Key.StartsWith("Start", StringComparison.OrdinalIgnoreCase)).Value;
+                        
+                        _availableCircuits.Add(new CircuitMetadata 
+                        { 
+                            Name = map.Name, 
+                            FilePath = mapFile,
+                            StartPoint = startMarker
+                        });
+                    }
+                    catch { /* Ignore corrupted map files */ }
+                }
+            }
+            // Sort by name
+            var sorted = _availableCircuits.OrderBy(c => c.Name).ToList();
+            _availableCircuits.Clear();
+            foreach (var c in sorted) _availableCircuits.Add(c);
+        }
+
+        private CircuitMetadata? DetectCircuit(List<TelemetryPoint> points)
+        {
+            if (!points.Any() || !_availableCircuits.Any()) return null;
+
+            var firstPoint = points[0];
+            CircuitMetadata? bestMatch = null;
+            double minDistance = double.MaxValue;
+
+            foreach (var circuit in _availableCircuits)
+            {
+                if (circuit.StartPoint == null) continue;
+
+                double dist = CalculateDistance(firstPoint.Latitude, firstPoint.Longitude, 
+                                                circuit.StartPoint.Latitude, circuit.StartPoint.Longitude);
+                
+                // If within 5km, it's a good candidate
+                if (dist < 5000 && dist < minDistance)
+                {
+                    minDistance = dist;
+                    bestMatch = circuit;
+                }
+            }
+
+            return bestMatch;
+        }
+
+        private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
+        {
+            double dLat = (lat2 - lat1) * Math.PI / 180.0;
+            double dLon = (lon2 - lon1) * Math.PI / 180.0;
+            double a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                       Math.Cos(lat1 * Math.PI / 180.0) * Math.Cos(lat2 * Math.PI / 180.0) *
+                       Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+            double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+            return 6371.0 * c * 1000.0; // Meters
+        }
+
+        private SessionItem? FindFirstSession(IEnumerable<ExplorerItem> items)
         {
             foreach (var item in items)
             {
@@ -401,83 +495,99 @@ namespace Analyzer.ViewModels
                 Date = ParseDateFromFileName(fileName)
             };
 
-            string? mapFile = FindMatchingMap(filePath);
-            if (mapFile != null)
+            SessionTitle = session.Title;
+            CurrentSession = session; // Set early so ApplyCircuit can use it
+
+            // Circuit Detection
+            var detected = DetectCircuit(points);
+            if (detected != null)
             {
-                session.MapFilePath = mapFile;
-                session.CircuitMap = _mapReaderService.ReadMap(mapFile);
-                
-                // Le nombre de secteurs est le nombre de marqueurs Time + 1 (pour rejoindre l'arrivée)
-                int markerTimes = session.CircuitMap.Markers.Keys.Count(k => k.StartsWith("Time", StringComparison.OrdinalIgnoreCase));
-                session.PartialCount = markerTimes > 0 ? markerTimes + 1 : 0;
-                
-                CurrentMap = session.CircuitMap;
-                CircuitName = CurrentMap.Name;
-                UpdateTrajectoryUI(CurrentMap);
+                _selectedCircuit = detected; // Use field to avoid re-triggering ApplyCircuit twice
+                OnPropertyChanged(nameof(SelectedCircuit));
+                ApplyCircuit(detected.FilePath);
             }
             else
             {
-                CircuitName = "Circuit inconnu";
-                TrajectoryPoints = new System.Windows.Media.PointCollection();
-            }
-
-            SessionTitle = session.Title;
-            Laps.Clear();
-            
-            // Calcul des tours réels
-            if (session.CircuitMap != null)
-            {
-                var calculatedLaps = _lapService.CalculateLaps(points, session.CircuitMap);
-                if (calculatedLaps.Any())
+                // Fallback to name detection if GPS fails or as secondary check
+                string? mapFile = FindMatchingMap(filePath);
+                if (mapFile != null)
                 {
-                    // Seuls les tours complets comptent pour les records
-                    var completeLaps = calculatedLaps.Where(l => l.Type == "Complet").ToList();
-                    
-                    if (completeLaps.Any())
-                    {
-                        var best = completeLaps.OrderBy(l => l.LapTimeMs).First();
-                        best.IsBestLap = true;
-                        session.BestLapTime = best.LapTime;
-                        BestLapTime = best.LapTime;
-
-                        // Calcul du Temps Idéal (somme des meilleurs secteurs de tous les tours complets)
-                        double idealMs = 0;
-                        int numSectors = session.PartialCount;
-                        if (numSectors > 0)
-                        {
-                            for (int s = 0; s < numSectors; s++)
-                            {
-                                var bestSectorMs = completeLaps
-                                    .Select(l => ParseTimeToMs(l.Partials[s]))
-                                    .Where(ms => ms > 0)
-                                    .DefaultIfEmpty(0)
-                                    .Min();
-                                idealMs += bestSectorMs;
-                            }
-                            IdealLapTime = FormatTimeFromMs(idealMs);
-                        }
-                    }
-
-                    var maxSpd = calculatedLaps.Max(l => l.MaxSpeed);
-                    foreach (var l in calculatedLaps.Where(lap => lap.MaxSpeed == maxSpd)) l.IsMaxSpeed = true;
-                    session.MaxSpeed = maxSpd;
-
-                    var maxAng = calculatedLaps.Max(l => Math.Max(l.MaxLeanLeft, l.MaxLeanRight));
-                    foreach (var l in calculatedLaps.Where(lap => lap.MaxLeanLeft == maxAng || lap.MaxLeanRight == maxAng)) l.IsMaxAngle = true;
-                    session.MaxLeanLeft = calculatedLaps.Max(l => l.MaxLeanLeft);
-                    session.MaxLeanRight = calculatedLaps.Max(l => l.MaxLeanRight);
-                    
-                    session.Laps = calculatedLaps;
-                    foreach (var lap in calculatedLaps) Laps.Add(lap);
+                    SelectedCircuit = AvailableCircuits.FirstOrDefault(c => c.FilePath == mapFile);
+                }
+                else
+                {
+                    CircuitName = "Circuit inconnu";
+                    TrajectoryPoints = new System.Windows.Media.PointCollection();
                 }
             }
-            
-            CurrentSession = session;
+        }
 
-            // Sélection automatique du meilleur tour pour afficher la télémétrie
+        private void ApplyCircuit(string mapFilePath)
+        {
+            if (CurrentSession == null) return;
+
+            CurrentSession.MapFilePath = mapFilePath;
+            CurrentSession.CircuitMap = _mapReaderService.ReadMap(mapFilePath);
+            
+            int markerTimes = CurrentSession.CircuitMap.Markers.Keys.Count(k => k.StartsWith("Time", StringComparison.OrdinalIgnoreCase));
+            CurrentSession.PartialCount = markerTimes > 0 ? markerTimes + 1 : 0;
+            
+            CurrentMap = CurrentSession.CircuitMap;
+            CircuitName = CurrentMap.Name;
+            UpdateTrajectoryUI(CurrentMap);
+
+            RecalculateLaps();
+        }
+
+        private void RecalculateLaps()
+        {
+            if (CurrentSession == null || CurrentSession.CircuitMap == null) return;
+
+            Laps.Clear();
+            var calculatedLaps = _lapService.CalculateLaps(CurrentSession.AllPoints, CurrentSession.CircuitMap);
+            
+            if (calculatedLaps.Any())
+            {
+                var completeLaps = calculatedLaps.Where(l => l.Type == "Complet").ToList();
+                if (completeLaps.Any())
+                {
+                    var best = completeLaps.OrderBy(l => l.LapTimeMs).First();
+                    best.IsBestLap = true;
+                    CurrentSession.BestLapTime = best.LapTime;
+                    BestLapTime = best.LapTime;
+
+                    double idealMs = 0;
+                    int numSectors = CurrentSession.PartialCount;
+                    if (numSectors > 0)
+                    {
+                        for (int s = 0; s < numSectors; s++)
+                        {
+                            var bestSectorMs = completeLaps
+                                .Select(l => ParseTimeToMs(l.Partials[s]))
+                                .Where(ms => ms > 0)
+                                .DefaultIfEmpty(0)
+                                .Min();
+                            idealMs += bestSectorMs;
+                        }
+                        IdealLapTime = FormatTimeFromMs(idealMs);
+                    }
+                }
+
+                CurrentSession.MaxSpeed = calculatedLaps.Max(l => l.MaxSpeed);
+                CurrentSession.MaxLeanLeft = calculatedLaps.Max(l => l.MaxLeanLeft);
+                CurrentSession.MaxLeanRight = calculatedLaps.Max(l => l.MaxLeanRight);
+                CurrentSession.Laps = calculatedLaps;
+                
+                foreach (var lap in calculatedLaps) Laps.Add(lap);
+            }
+            
             if (Laps.Any())
             {
                 SelectedLap = Laps.FirstOrDefault(l => l.IsBestLap) ?? Laps.First();
+            }
+            else
+            {
+                UpdateTelemetryCharts();
             }
         }
 

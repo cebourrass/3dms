@@ -216,7 +216,8 @@
                             <dock:LayoutPanel Orientation="Horizontal">
                                 <!-- Laps View Panel -->
                                 <dock:LayoutAnchorablePane>
-                                    <dock:LayoutAnchorable x:Name="LapsPane" ContentId="LapsPane" Title="Tableau des Tours" CanClose="False" IsVisibleChanged="Pane_IsVisibleChanged">
+                                    <dock:LayoutAnchorable x:Name="LapsPane" ContentId="LapsPane" Title="Tableau des Tours" CanClose="False" 
+                                                           IsVisibleChanged="Pane_IsVisibleChanged">
                                         <DataGrid ItemsSource="{Binding Laps}" 
                                                   SelectedItem="{Binding SelectedLap}"
                                                   SelectionMode="Extended"
@@ -267,7 +268,8 @@
 
                                 <!-- Session Info Panel -->
                                 <dock:LayoutAnchorablePane DockWidth="280">
-                                    <dock:LayoutAnchorable x:Name="SessionInfoPane" ContentId="SessionInfoPane" Title="Infos Session" CanClose="False" IsVisibleChanged="Pane_IsVisibleChanged">
+                                    <dock:LayoutAnchorable x:Name="SessionInfoPane" ContentId="SessionInfoPane" Title="Infos Session" CanClose="False" 
+                                                           IsVisibleChanged="Pane_IsVisibleChanged">
                                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                                             <StackPanel Margin="16">
                                                 <StackPanel Margin="0,0,0,12">
@@ -277,7 +279,10 @@
 
                                                 <StackPanel Margin="0,0,0,12">
                                                     <TextBlock Text="Circuit :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
-                                                    <TextBlock Text="{Binding CircuitName}" FontSize="13"/>
+                                                    <ComboBox ItemsSource="{Binding AvailableCircuits}" 
+                                                              SelectedItem="{Binding SelectedCircuit}"
+                                                              DisplayMemberPath="Name"
+                                                              ui:ControlHelper.PlaceholderText="Détection auto..."/>
                                                 </StackPanel>
 
                                                 <StackPanel Margin="0,0,0,12">
@@ -351,7 +356,8 @@
 
                                 <!-- Map Panel -->
                                 <dock:LayoutAnchorablePane>
-                                    <dock:LayoutAnchorable x:Name="MapPane" ContentId="MapPane" Title="Carte &amp; Tracé" CanClose="False" IsVisibleChanged="Pane_IsVisibleChanged">
+                                    <dock:LayoutAnchorable x:Name="MapPane" ContentId="MapPane" Title="Carte &amp; Tracé" CanClose="False" 
+                                                           IsVisibleChanged="Pane_IsVisibleChanged">
                                         <Grid Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" ClipToBounds="True">
                                             <Image Source="https://www.google.com/maps/vt/pb=!1m4!1m3!1i15!2i16447!3i11808!2m3!1e0!2sm!3i637156903!3m8!2sfr!3sp!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!1sfsy:1" Stretch="UniformToFill" Opacity="0.5"/>
                                             <Border Background="#AA000000" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="10" CornerRadius="4" Padding="8,4">
@@ -365,7 +371,8 @@
 
                             <!-- Telemetry Panel (Bottom) -->
                             <dock:LayoutAnchorablePane>
-                                <dock:LayoutAnchorable x:Name="ChartsPane" ContentId="ChartsPane" Title="Graphiques Télémétriques" CanClose="False" IsVisibleChanged="Pane_IsVisibleChanged">
+                                <dock:LayoutAnchorable x:Name="ChartsPane" ContentId="ChartsPane" Title="Graphiques Télémétriques" CanClose="False" 
+                                                       IsVisibleChanged="Pane_IsVisibleChanged">
                                     <Grid Background="#0f172a">
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto"/>

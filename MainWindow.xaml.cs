@@ -12,7 +12,26 @@ namespace Analyzer
         public MainWindow()
         {
             InitializeComponent();
-            DataContext = new ViewModels.MainViewModel();
+            var vm = new ViewModels.MainViewModel();
+            DataContext = vm;
+
+            vm.PropertyChanged += (s, e) =>
+            {
+                switch (e.PropertyName)
+                {
+                    case nameof(vm.IsLapsVisible): SyncPane(LapsPane, vm.IsLapsVisible); break;
+                    case nameof(vm.IsSessionInfoVisible): SyncPane(SessionInfoPane, vm.IsSessionInfoVisible); break;
+                    case nameof(vm.IsMapVisible): SyncPane(MapPane, vm.IsMapVisible); break;
+                    case nameof(vm.IsChartsVisible): SyncPane(ChartsPane, vm.IsChartsVisible); break;
+                }
+            };
+        }
+
+        private void SyncPane(Xceed.Wpf.AvalonDock.Layout.LayoutAnchorable pane, bool visible)
+        {
+            if (pane == null) return;
+            if (visible && !pane.IsVisible) pane.Show();
+            else if (!visible && pane.IsVisible) pane.Hide();
         }
 
         private void OpenSession_Click(object sender, RoutedEventArgs e)
