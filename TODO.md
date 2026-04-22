@@ -3,7 +3,8 @@
 Liste des fonctionnalités et améliorations planifiées pour l'analyse de pilotage.
 
 ## 📊 Analyse de Performance
-- [ ] **Graphique de Delta Time** : Afficher une zone sous la télémétrie montrant l'écart cumulé (gain/perte de temps) en temps réel par rapport au tour de référence.
+- [x] **Graphique de Delta Time** : Afficher une zone sous la télémétrie montrant l'écart cumulé (gain/perte de temps) en temps réel par rapport au tour de référence.
+- [ ] **Correctif Superposition Delta** : Résoudre le conflit d'axes Y quand le Delta est affiché simultanément avec l'Angle ou les G (axe de droite partagé).
 - [x] **Régularité par Secteur** : Calculer l'écart-type des temps par secteur sur les tours sélectionnés pour identifier les zones d'inconstance.
 - [ ] **Analyse des Vmin** : Identifier automatiquement les virages et comparer les vitesses minimales de passage entre les tours.
 - [ ] **Potentiel Inexploité** : Améliorer le calcul du tour idéal en découpant le circuit en mini-secteurs (ex: tous les 100m) pour montrer la vitesse maximale théorique du pilote.
