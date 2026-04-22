@@ -185,14 +185,13 @@ namespace Analyzer
             var chart = (CartesianChart)sender;
             var mousePoint = e.GetPosition(chart);
             
-            // On récupère les points situés sous la souris (le mode par défaut sera utilisé)
-            var dataPoints = chart.GetPointsAt(new LiveChartsCore.Drawing.LvcPoint((float)mousePoint.X, (float)mousePoint.Y));
+            // On convertit directement la position X de la souris en valeur sur l'axe X (temps ou distance)
+            // C'est beaucoup plus performant que GetPointsAt qui doit scanner tous les points de toutes les séries.
+            var dataPoint = chart.ScalePixelsToData(new LiveChartsCore.Drawing.LvcPointD(mousePoint.X, mousePoint.Y));
             
-            var firstPoint = dataPoints.FirstOrDefault();
-            if (firstPoint != null && DataContext is ViewModels.MainViewModel vm)
+            if (DataContext is ViewModels.MainViewModel vm)
             {
-                // SecondaryValue correspond généralement à l'axe X (le temps dans notre cas)
-                vm.UpdateCursor(firstPoint.Coordinate.SecondaryValue);
+                vm.UpdateCursor(dataPoint.X);
             }
         }
         private void PickColor_Click(object sender, RoutedEventArgs e)

@@ -15,6 +15,24 @@ using System.IO;
 
 namespace Analyzer.ViewModels
 {
+    public class CursorLapValue : ObservableObject
+    {
+        private string _lapName = string.Empty;
+        public string LapName { get => _lapName; set => SetProperty(ref _lapName, value); }
+
+        private string _color = "#FFFFFF";
+        public string Color { get => _color; set => SetProperty(ref _color, value); }
+
+        private double _speed;
+        public double Speed { get => _speed; set => SetProperty(ref _speed, value); }
+
+        private double _angle;
+        public double Angle { get => _angle; set => SetProperty(ref _angle, value); }
+
+        private double _accel;
+        public double Accel { get => _accel; set => SetProperty(ref _accel, value); }
+    }
+
     public class LegendEntry : ObservableObject
     {
         public string Label { get; set; } = string.Empty;
@@ -177,6 +195,12 @@ namespace Analyzer.ViewModels
             get => _regularityThresholdMedium; 
             set { if (SetProperty(ref _regularityThresholdMedium, value)) UpdateRegularityStats(); } 
         }
+
+        private string _xAxisValueLabel = "TEMPS";
+        public string XAxisValueLabel => _xAxisValueLabel;
+        public string XAxisUnit => _xAxisValueLabel == "DISTANCE" ? "m" : "s";
+
+        public ObservableCollection<CursorLapValue> CursorLaps { get; } = new();
 
         private LapData _selectedLap = null!;
         public LapData SelectedLap
@@ -824,6 +848,10 @@ namespace Analyzer.ViewModels
                 _currentLapPoints = points;
                 _interpolatedPoints = processedPoints;
             }
+            if (lap != null)
+            {
+                lap.TelemetryPoints = points;
+            }
 
             bool useDistance = (ComparisonLaps.Count > 1 || (ShowReference && _cachedReferencePoints != null));
             bool legendAdded = false;
@@ -1081,9 +1109,9 @@ namespace Analyzer.ViewModels
                 // Note: La comparaison de temps se fait sur LapTimeMs s'il y a un objet ReferenceLap, sinon on estime
                 double lapDuration = ReferenceLap?.LapTimeMs ?? refMs;
                 
-                // La référence globale utilise RefThickness en comparaison, ou les styles individuels en solo
-                float rThickness = isComparing ? RefThickness : -1;
-                SKColor? rColorOverride = isComparing ? SKColor.Parse(RefColor) : null;
+                // La référence utilise toujours RefColor et RefThickness pour se distinguer
+                float rThickness = (float)RefThickness;
+                SKColor rColorOverride = SKColor.Parse(RefColor);
                 
                 AddLapSeries(seriesList, null, null, rThickness, rColorOverride, true);
                 
@@ -1253,53 +1281,147 @@ namespace Analyzer.ViewModels
                 Stroke = new SolidColorPaint(new SKColor(239, 68, 68), 2) // Red 500
             });
             Sections = sectionsList.ToArray();
-            UpdateCursor(0);
+            UpdateCursor(CurrentX, true);
 
             // Calculer les statistiques de régularité
             UpdateRegularityStats();
         }
 
-        public void UpdateCursor(double timeOrDist)
+        public void UpdateCursor(double timeOrDist, bool force = false)
         {
-            var pointsForCursor = _interpolatedPoints ?? _currentLapPoints;
-            if (pointsForCursor == null || !pointsForCursor.Any()) return;
+            if (!force && Math.Abs(CurrentX - timeOrDist) < 0.001) return; // Éviter les mises à jour inutiles si pas de mouvement réel
 
             CurrentX = timeOrDist;
             
-            bool useDistance = (ComparisonLaps.Count > 1 || (ShowReference && ReferenceLap != null));
-            TelemetryPoint? point = null;
-
-            if (useDistance)
+            string newLabel = (ComparisonLaps.Count > 1 || (ShowReference && ReferenceLap != null)) ? "DISTANCE" : "TEMPS";
+            if (newLabel != _xAxisValueLabel)
             {
-                double startDist = pointsForCursor[0].Distance;
-                point = pointsForCursor
-                    .OrderBy(p => Math.Abs((p.Distance - startDist) - timeOrDist))
-                    .FirstOrDefault();
-            }
-            else
-            {
-                uint targetTime = (uint)(SelectedLap.StartTimeMs + (timeOrDist * 1000.0));
-                point = pointsForCursor
-                    .OrderBy(p => Math.Abs((long)p.Time - targetTime))
-                    .FirstOrDefault();
+                _xAxisValueLabel = newLabel;
+                OnPropertyChanged(nameof(XAxisValueLabel));
+                OnPropertyChanged(nameof(XAxisUnit));
             }
 
-            if (point != null)
+            bool useDistance = (newLabel == "DISTANCE");
+            
+            // 1. Mettre à jour les valeurs de base (SelectedLap)
+            var pointsForCursor = _interpolatedPoints ?? _currentLapPoints;
+            if (pointsForCursor != null && pointsForCursor.Any())
             {
-                CurrentSpeed = point.Speed;
-                CurrentAngle = Math.Abs(point.LeanAngle);
-                CurrentAngleColor = point.LeanAngle <= 0 ? AngleColor : AngleRightColor;
-                CurrentAccel = Math.Abs(point.Acceleration);
-                CurrentAccelColor = point.Acceleration >= 0 ? AccelColor : DecelColor;
+                TelemetryPoint? point = null;
+                if (useDistance)
+                {
+                    double startDist = pointsForCursor[0].Distance;
+                    point = FindClosestPoint(pointsForCursor, timeOrDist, true, startDist);
+                }
+                else
+                {
+                    uint targetTime = (uint)(SelectedLap.StartTimeMs + (timeOrDist * 1000.0));
+                    point = FindClosestPoint(pointsForCursor, targetTime, false, 0);
+                }
+
+                if (point != null)
+                {
+                    CurrentSpeed = point.Speed;
+                    CurrentAngle = Math.Abs(point.LeanAngle);
+                    CurrentAngleColor = point.LeanAngle <= 0 ? AngleColor : AngleRightColor;
+                    CurrentAccel = Math.Abs(point.Acceleration);
+                    CurrentAccelColor = point.Acceleration >= 0 ? AccelColor : DecelColor;
+                }
             }
 
-            // Mettre à jour la position de la barre rouge dans Sections sans tout recalculer si possible
+            // 2. Mettre à jour CursorLaps pour TOUS les tours comparés (Réutilisation des objets pour la fluidité)
+            var allVisible = new List<LapData>();
+            if (ShowReference && ReferenceLap != null) allVisible.Add(ReferenceLap);
+            if (SelectedLap != null && !allVisible.Contains(SelectedLap)) allVisible.Add(SelectedLap);
+            foreach (var lap in ComparisonLaps) if (!allVisible.Contains(lap)) allVisible.Add(lap);
+
+            int index = 0;
+            foreach (var lap in allVisible)
+            {
+                if (lap == null) continue;
+                
+                List<TelemetryPoint>? points = (lap == SelectedLap) ? _currentLapPoints 
+                                             : (lap == ReferenceLap && _cachedReferencePoints != null) ? _cachedReferencePoints 
+                                             : lap.TelemetryPoints;
+
+                if (points == null || !points.Any()) continue;
+                
+                TelemetryPoint? p = null;
+                if (useDistance)
+                {
+                    double lapStartDist = (lap == ReferenceLap && points == _cachedReferencePoints) ? 0 : points[0].Distance;
+                    p = FindClosestPoint(points, timeOrDist, true, lapStartDist);
+                }
+                else
+                {
+                    double targetTime = (lap == ReferenceLap && points == _cachedReferencePoints) ? (timeOrDist * 1000.0) : (lap.StartTimeMs + (timeOrDist * 1000.0));
+                    p = FindClosestPoint(points, targetTime, false, 0);
+                }
+
+                if (p != null)
+                {
+                    string color = lap == ReferenceLap ? RefColor : (lap == SelectedLap ? SpeedColor : "#6366f1");
+                    var legend = LegendEntries.FirstOrDefault(le => le.Label.Contains(lap.LapTime));
+                    if (legend != null && legend.Color != null && lap != SelectedLap && lap != ReferenceLap) color = legend.Color;
+
+                    if (index < CursorLaps.Count)
+                    {
+                        var item = CursorLaps[index];
+                        item.LapName = lap == ReferenceLap ? "RÉF" : $"T{lap.Number}";
+                        item.Color = color;
+                        item.Speed = p.Speed;
+                        item.Angle = Math.Abs(p.LeanAngle);
+                        item.Accel = p.Acceleration;
+                    }
+                    else
+                    {
+                        CursorLaps.Add(new CursorLapValue
+                        {
+                            LapName = lap == ReferenceLap ? "RÉF" : $"T{lap.Number}",
+                            Color = color,
+                            Speed = p.Speed,
+                            Angle = Math.Abs(p.LeanAngle),
+                            Accel = p.Acceleration
+                        });
+                    }
+                    index++;
+                }
+            }
+            while (CursorLaps.Count > index) CursorLaps.RemoveAt(CursorLaps.Count - 1);
+
+            // 3. Mettre à jour la position de la barre rouge
             if (Sections != null && Sections.Length > 0)
             {
                 var cursorSection = Sections.Last();
                 cursorSection.Xi = timeOrDist;
                 cursorSection.Xj = timeOrDist;
             }
+        }
+
+        private TelemetryPoint? FindClosestPoint(List<TelemetryPoint> points, double target, bool useDistance, double startDist = 0)
+        {
+            if (points == null || points.Count == 0) return null;
+            
+            int low = 0;
+            int high = points.Count - 1;
+            
+            while (low <= high)
+            {
+                int mid = (low + high) / 2;
+                double val = useDistance ? (points[mid].Distance - startDist) : points[mid].Time;
+                
+                if (val < target) low = mid + 1;
+                else if (val > target) high = mid - 1;
+                else return points[mid];
+            }
+            
+            if (low >= points.Count) return points[points.Count - 1];
+            if (high < 0) return points[0];
+            
+            double valLow = useDistance ? (points[low].Distance - startDist) : points[low].Time;
+            double valHigh = useDistance ? (points[high].Distance - startDist) : points[high].Time;
+            
+            return (Math.Abs(valLow - target) < Math.Abs(valHigh - target)) ? points[low] : points[high];
         }
 
         private void LoadMockupData()
