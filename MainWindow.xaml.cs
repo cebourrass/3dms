@@ -80,7 +80,7 @@ namespace Analyzer
             }
         }
 
-        private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
             if (DataContext is ViewModels.MainViewModel vm)
             {
@@ -193,6 +193,44 @@ namespace Analyzer
             {
                 // SecondaryValue correspond généralement à l'axe X (le temps dans notre cas)
                 vm.UpdateCursor(firstPoint.Coordinate.SecondaryValue);
+            }
+        }
+        private void PickColor_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Button btn && btn.Tag is string propertyName && DataContext is ViewModels.MainViewModel vm)
+            {
+                var dialog = new System.Windows.Forms.ColorDialog();
+                
+                // Récupérer la couleur actuelle depuis le ViewModel
+                string currentHex = propertyName switch
+                {
+                    "SpeedColor" => vm.SpeedColor,
+                    "AngleColor" => vm.AngleColor,
+                    "AngleRightColor" => vm.AngleRightColor,
+                    "AccelColor" => vm.AccelColor,
+                    "RefColor" => vm.RefColor,
+                    _ => "#FFFFFF"
+                };
+
+                try {
+                    var color = System.Drawing.ColorTranslator.FromHtml(currentHex);
+                    dialog.Color = color;
+                } catch { }
+
+                if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    string newHex = $"#{dialog.Color.R:X2}{dialog.Color.G:X2}{dialog.Color.B:X2}";
+                    
+                    // Appliquer au ViewModel
+                    switch (propertyName)
+                    {
+                        case "SpeedColor": vm.SpeedColor = newHex; break;
+                        case "AngleColor": vm.AngleColor = newHex; break;
+                        case "AngleRightColor": vm.AngleRightColor = newHex; break;
+                        case "AccelColor": vm.AccelColor = newHex; break;
+                        case "RefColor": vm.RefColor = newHex; break;
+                    }
+                }
             }
         }
     }

@@ -84,6 +84,11 @@ namespace Analyzer.ViewModels
         private float _angleThickness = 1.8f;
         public float AngleThickness { get => _angleThickness; set { if (SetProperty(ref _angleThickness, value)) UpdateTelemetryCharts(); } }
 
+        private string _angleRightColor = "#f59e0b"; // Orange/Amber 600
+        public string AngleRightColor { get => _angleRightColor; set { if (SetProperty(ref _angleRightColor, value)) UpdateTelemetryCharts(); } }
+        private float _angleRightThickness = 1.8f;
+        public float AngleRightThickness { get => _angleRightThickness; set { if (SetProperty(ref _angleRightThickness, value)) UpdateTelemetryCharts(); } }
+
         private string _accelColor = "#8b5cf6"; // Violet
         public string AccelColor { get => _accelColor; set { if (SetProperty(ref _accelColor, value)) UpdateTelemetryCharts(); } }
         private float _accelThickness = 1.8f;
@@ -120,6 +125,9 @@ namespace Analyzer.ViewModels
         
         private float _currentAccel;
         public float CurrentAccel { get => _currentAccel; set => SetProperty(ref _currentAccel, value); }
+
+        private string _currentAngleColor = "#fbbf24";
+        public string CurrentAngleColor { get => _currentAngleColor; set => SetProperty(ref _currentAngleColor, value); }
 
         // Cache pour la détection rapide par dossier
         private readonly Dictionary<string, CircuitMetadata> _directoryCircuitCache = new();
@@ -309,11 +317,13 @@ namespace Analyzer.ViewModels
             _settings = _settingsService.LoadSettings();
 
             // Appliquer les paramètres chargés
-            _speedColor = _settings.SpeedColor;
+            _speedColor = _settings.SpeedColor ?? "#10b981";
             _speedThickness = _settings.SpeedThickness;
-            _angleColor = _settings.AngleColor;
+            _angleColor = _settings.AngleColor ?? "#fbbf24";
             _angleThickness = _settings.AngleThickness;
-            _accelColor = _settings.AccelColor;
+            _angleRightColor = _settings.AngleRightColor ?? "#f59e0b";
+            _angleRightThickness = _settings.AngleRightThickness;
+            _accelColor = _settings.AccelColor ?? "#8b5cf6";
             _accelThickness = _settings.AccelThickness;
             _refColor = _settings.RefColor;
             _refThickness = _settings.RefThickness;
@@ -360,6 +370,8 @@ namespace Analyzer.ViewModels
             _settings.SpeedThickness = SpeedThickness;
             _settings.AngleColor = AngleColor;
             _settings.AngleThickness = AngleThickness;
+            _settings.AngleRightColor = AngleRightColor;
+            _settings.AngleRightThickness = AngleRightThickness;
             _settings.AccelColor = AccelColor;
             _settings.AccelThickness = AccelThickness;
             _settings.RefColor = RefColor;
@@ -774,13 +786,30 @@ namespace Analyzer.ViewModels
             if (ShowAngle)
             {
                 float thickness = thicknessOverride > 0 ? thicknessOverride : AngleThickness;
-                seriesList.Add(new LineSeries<ObservablePoint>
+                float thicknessRight = thicknessOverride > 0 ? thicknessOverride : AngleRightThickness;
+
+                // Courbe Angle GAUCHE (Points négatifs mis en positif)
+                seriesList.Add(new LineSeries<ObservablePoint?>
                 {
-                    Values = points.Select(p => new ObservablePoint(
-                        useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, 
-                        (double)Math.Abs(p.LeanAngle))).ToArray(),
-                    Name = !legendAdded ? label : null,
+                    Values = points.Select(p => p.LeanAngle <= 0 
+                        ? new ObservablePoint(useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, (double)-p.LeanAngle)
+                        : (ObservablePoint?)null
+                    ).ToArray(),
+                    Name = !legendAdded ? (label != null ? $"{label} (G)" : "Angle (G)") : null,
                     Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(AngleColor), thickness),
+                    GeometrySize = 0,
+                    Fill = null
+                });
+
+                // Courbe Angle DROIT (Points positifs)
+                seriesList.Add(new LineSeries<ObservablePoint?>
+                {
+                    Values = points.Select(p => p.LeanAngle > 0 
+                        ? new ObservablePoint(useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, (double)p.LeanAngle)
+                        : (ObservablePoint?)null
+                    ).ToArray(),
+                    Name = label != null ? $"{label} (D)" : "Angle (D)",
+                    Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(AngleRightColor), thicknessRight),
                     GeometrySize = 0,
                     Fill = null
                 });
@@ -1094,6 +1123,7 @@ namespace Analyzer.ViewModels
             {
                 CurrentSpeed = point.Speed;
                 CurrentAngle = Math.Abs(point.LeanAngle);
+                CurrentAngleColor = point.LeanAngle <= 0 ? AngleColor : AngleRightColor;
                 CurrentAccel = point.Acceleration;
             }
 

@@ -21,6 +21,8 @@ namespace Analyzer.Models
         public float SpeedThickness { get; set; } = 1.8f;
         public string AngleColor { get; set; } = "#fbbf24";
         public float AngleThickness { get; set; } = 1.8f;
+        public string AngleRightColor { get; set; } = "#f59e0b";
+        public float AngleRightThickness { get; set; } = 1.8f;
         public string AccelColor { get; set; } = "#8b5cf6";
         public float AccelThickness { get; set; } = 1.8f;
         public string RefColor { get; set; } = "#ffffff";
