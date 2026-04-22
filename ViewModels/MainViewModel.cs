@@ -1578,7 +1578,13 @@ namespace Analyzer.ViewModels
         private void UpdateRegularityStats()
         {
             RegularityStats.Clear();
-            var laps = ComparisonLaps.Where(l => l.LapTimeMs > 0).ToList();
+            
+            var lapPool = new HashSet<LapData>();
+            if (SelectedLap != null && SelectedLap.LapTimeMs > 0) lapPool.Add(SelectedLap);
+            if (ShowReference && ReferenceLap != null && ReferenceLap.LapTimeMs > 0) lapPool.Add(ReferenceLap);
+            foreach (var lap in ComparisonLaps) if (lap.LapTimeMs > 0) lapPool.Add(lap);
+
+            var laps = lapPool.ToList();
             
             if (laps.Count < 2)
             {
@@ -1589,11 +1595,14 @@ namespace Analyzer.ViewModels
             IsRegularityVisible = true;
             AddRegularityItem("Total", laps.Select(l => (double)l.LapTimeMs / 1000.0).ToList());
 
-            int numSectors = CurrentSession?.PartialCount ?? 0;
+            int numSectors = 0;
+            if (laps.Any()) numSectors = laps.Max(l => l.Partials?.Length ?? 0);
+
             for (int i = 0; i < numSectors; i++)
             {
                 int sectorIndex = i;
                 var sectorTimes = laps
+                    .Where(l => l.Partials != null && sectorIndex < l.Partials.Length)
                     .Select(l => ParseTimeToMs(l.Partials[sectorIndex]) / 1000.0)
                     .Where(t => t > 0)
                     .ToList();
