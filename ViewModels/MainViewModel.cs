@@ -158,6 +158,7 @@ namespace Analyzer.ViewModels
         public SolidColorPaint LegendTextPaint { get; } = new SolidColorPaint(new SKColor(200, 200, 200));
 
         private List<TelemetryPoint> _currentLapPoints = new();
+        private List<TelemetryPoint>? _interpolatedPoints;
 
         private LapData _selectedLap = null!;
         public LapData SelectedLap
@@ -796,24 +797,33 @@ namespace Analyzer.ViewModels
 
             if (!points.Any()) return;
 
-            // Mise à jour des points actuels pour le curseur (si c'est le tour sélectionné)
-            if (lap == SelectedLap) _currentLapPoints = points;
+            // --- Lissage et Interpolation ---
+            // On interpole à 50Hz (20ms) pour une fluidité maximale
+            var processedPoints = InterpolateAndSmooth(points);
+
+            if (lap == SelectedLap) 
+            {
+                _currentLapPoints = points;
+                _interpolatedPoints = processedPoints;
+            }
 
             bool useDistance = (ComparisonLaps.Count > 1 || (ShowReference && _cachedReferencePoints != null));
             bool legendAdded = false;
+            float smoothness = 0.65f;
 
             if (ShowSpeed)
             {
                 float thickness = thicknessOverride > 0 ? thicknessOverride : SpeedThickness;
                 seriesList.Add(new LineSeries<ObservablePoint>
                 {
-                    Values = points.Select(p => new ObservablePoint(
+                    Values = processedPoints.Select(p => new ObservablePoint(
                         useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, 
                         (double)p.Speed)).ToArray(),
                     Name = !legendAdded ? label : null,
                     Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(SpeedColor), thickness),
                     GeometrySize = 0,
-                    Fill = null
+                    Fill = null,
+                    LineSmoothness = smoothness
                 });
                 legendAdded = true;
             }
@@ -828,14 +838,15 @@ namespace Analyzer.ViewModels
                     // Courbe Angle GAUCHE (Points négatifs mis en positif)
                     seriesList.Add(new LineSeries<ObservablePoint?>
                     {
-                        Values = points.Select(p => p.LeanAngle <= 0 
+                        Values = processedPoints.Select(p => p.LeanAngle <= 0 
                             ? new ObservablePoint(useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, (double)-p.LeanAngle)
                             : (ObservablePoint?)null
                         ).ToArray(),
                         Name = !legendAdded ? (label != null ? $"{label} (G)" : "Angle (G)") : null,
                         Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(AngleColor), thickness),
                         GeometrySize = 0,
-                        Fill = null
+                        Fill = null,
+                        LineSmoothness = smoothness
                     });
                 }
 
@@ -844,14 +855,15 @@ namespace Analyzer.ViewModels
                     // Courbe Angle DROIT (Points positifs)
                     seriesList.Add(new LineSeries<ObservablePoint?>
                     {
-                        Values = points.Select(p => p.LeanAngle > 0 
+                        Values = processedPoints.Select(p => p.LeanAngle > 0 
                             ? new ObservablePoint(useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, (double)p.LeanAngle)
                             : (ObservablePoint?)null
                         ).ToArray(),
                         Name = label != null ? $"{label} (D)" : "Angle (D)",
                         Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(AngleRightColor), thicknessRight),
                         GeometrySize = 0,
-                        Fill = null
+                        Fill = null,
+                        LineSmoothness = smoothness
                     });
                 }
                 legendAdded = true;
@@ -867,14 +879,15 @@ namespace Analyzer.ViewModels
                     // Courbe Accélération (Points positifs)
                     seriesList.Add(new LineSeries<ObservablePoint?>
                     {
-                        Values = points.Select(p => p.Acceleration >= 0 
+                        Values = processedPoints.Select(p => p.Acceleration >= 0 
                             ? new ObservablePoint(useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, (double)p.Acceleration * 50)
                             : (ObservablePoint?)null
                         ).ToArray(),
                         Name = !legendAdded ? (label != null ? $"{label} (Acc)" : "Accel") : null,
                         Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(AccelColor), thickness),
                         GeometrySize = 0,
-                        Fill = null
+                        Fill = null,
+                        LineSmoothness = smoothness
                     });
                 }
 
@@ -883,18 +896,77 @@ namespace Analyzer.ViewModels
                     // Courbe Décélération (Points négatifs mis en positif)
                     seriesList.Add(new LineSeries<ObservablePoint?>
                     {
-                        Values = points.Select(p => p.Acceleration < 0 
+                        Values = processedPoints.Select(p => p.Acceleration < 0 
                             ? new ObservablePoint(useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, (double)-p.Acceleration * 50)
                             : (ObservablePoint?)null
                         ).ToArray(),
                         Name = label != null ? $"{label} (Frein)" : "Frein",
                         Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(DecelColor), thicknessDecel),
                         GeometrySize = 0,
-                        Fill = null
+                        Fill = null,
+                        LineSmoothness = smoothness
                     });
                 }
                 legendAdded = true;
             }
+        }
+
+        private List<TelemetryPoint> InterpolateAndSmooth(List<TelemetryPoint> rawPoints)
+        {
+            if (rawPoints.Count < 2) return rawPoints;
+
+            var smoothed = new List<TelemetryPoint>();
+            int window = 3;
+            for (int i = 0; i < rawPoints.Count; i++)
+            {
+                int start = Math.Max(0, i - window / 2);
+                int end = Math.Min(rawPoints.Count - 1, i + window / 2);
+                int count = end - start + 1;
+
+                var avg = new TelemetryPoint
+                {
+                    Time = rawPoints[i].Time,
+                    Distance = (float)rawPoints.Skip(start).Take(count).Average(p => (double)p.Distance),
+                    Speed = (float)rawPoints.Skip(start).Take(count).Average(p => (double)p.Speed),
+                    LeanAngle = (float)rawPoints.Skip(start).Take(count).Average(p => (double)p.LeanAngle),
+                    Acceleration = (float)rawPoints.Skip(start).Take(count).Average(p => (double)p.Acceleration),
+                    Latitude = (float)rawPoints.Skip(start).Take(count).Average(p => (double)p.Latitude),
+                    Longitude = (float)rawPoints.Skip(start).Take(count).Average(p => (double)p.Longitude)
+                };
+                smoothed.Add(avg);
+            }
+
+            var interpolated = new List<TelemetryPoint>();
+            double startTime = rawPoints.First().Time;
+            double endTime = rawPoints.Last().Time;
+            double step = 20.0;
+
+            for (double t = startTime; t <= endTime; t += step)
+            {
+                var p1 = smoothed.LastOrDefault(p => p.Time <= t);
+                var p2 = smoothed.FirstOrDefault(p => p.Time > t);
+
+                if (p1 != null && p2 != null)
+                {
+                    float ratio = (float)((t - p1.Time) / (p2.Time - p1.Time));
+                    interpolated.Add(new TelemetryPoint
+                    {
+                        Time = (uint)t,
+                        Distance = p1.Distance + (p2.Distance - p1.Distance) * ratio,
+                        Speed = p1.Speed + (p2.Speed - p1.Speed) * ratio,
+                        LeanAngle = p1.LeanAngle + (p2.LeanAngle - p1.LeanAngle) * ratio,
+                        Acceleration = p1.Acceleration + (p2.Acceleration - p1.Acceleration) * ratio,
+                        Latitude = p1.Latitude + (p2.Latitude - p1.Latitude) * ratio,
+                        Longitude = p1.Longitude + (p2.Longitude - p1.Longitude) * ratio
+                    });
+                }
+                else if (p1 != null)
+                {
+                    interpolated.Add(p1);
+                }
+            }
+
+            return interpolated;
         }
 
         public void UpdateTelemetryCharts()
@@ -925,6 +997,7 @@ namespace Analyzer.ViewModels
 
             // 3. Tours de Comparaison
             var comparePool = ComparisonLaps.Where(l => l.LapTimeMs > 0 && l != SelectedLap && l != ReferenceLap).ToList();
+            bool isComparing = comparePool.Any();
 
             // Calculer les bornes globales sur TOUS les tours affichés pour une échelle cohérente
             var allVisible = new List<LapData?>();
@@ -968,9 +1041,13 @@ namespace Analyzer.ViewModels
             string selectedLabel = (ShowReference && SelectedLap == ReferenceLap) ? $"[REF] T{SelectedLap.Number}" : $"T{SelectedLap.Number}";
             
             double sFactor = globalRange > 0 ? (SelectedLap.LapTimeMs - globalMinMs) / globalRange : 0;
-            float sThickness = (float)(CompFastThickness + (sFactor * (CompSlowThickness - CompFastThickness)));
+            float sThickness = isComparing ? (float)(CompFastThickness + (sFactor * (CompSlowThickness - CompFastThickness))) : -1;
             
-            AddLapSeries(seriesList, SelectedLap, null, sThickness, null); 
+            // En solo, on utilise les couleurs individuelles (colorOverride = null)
+            // En comparaison, on utilise le style de référence (si c'est le tour de référence)
+            SKColor? sColorOverride = (isComparing && SelectedLap == ReferenceLap) ? SKColor.Parse(RefColor) : null;
+
+            AddLapSeries(seriesList, SelectedLap, null, sThickness, sColorOverride); 
             LegendEntries.Add(new LegendEntry { 
                 Label = selectedLabel, 
                 LapTime = selectedTime, 
@@ -986,9 +1063,11 @@ namespace Analyzer.ViewModels
                 // Note: La comparaison de temps se fait sur LapTimeMs s'il y a un objet ReferenceLap, sinon on estime
                 double lapDuration = ReferenceLap?.LapTimeMs ?? refMs;
                 
-                float rThickness = RefThickness;
+                // La référence globale utilise RefThickness en comparaison, ou les styles individuels en solo
+                float rThickness = isComparing ? RefThickness : -1;
+                SKColor? rColorOverride = isComparing ? SKColor.Parse(RefColor) : null;
                 
-                AddLapSeries(seriesList, null, null, rThickness, SKColor.Parse(RefColor), true);
+                AddLapSeries(seriesList, null, null, rThickness, rColorOverride, true);
                 
                 // Libellé propre
                 LegendEntries.Add(new LegendEntry { 
@@ -1161,7 +1240,8 @@ namespace Analyzer.ViewModels
 
         public void UpdateCursor(double timeOrDist)
         {
-            if (!_currentLapPoints.Any()) return;
+            var pointsForCursor = _interpolatedPoints ?? _currentLapPoints;
+            if (pointsForCursor == null || !pointsForCursor.Any()) return;
 
             CurrentX = timeOrDist;
             
@@ -1170,15 +1250,15 @@ namespace Analyzer.ViewModels
 
             if (useDistance)
             {
-                double startDist = _currentLapPoints[0].Distance;
-                point = _currentLapPoints
+                double startDist = pointsForCursor[0].Distance;
+                point = pointsForCursor
                     .OrderBy(p => Math.Abs((p.Distance - startDist) - timeOrDist))
                     .FirstOrDefault();
             }
             else
             {
                 uint targetTime = (uint)(SelectedLap.StartTimeMs + (timeOrDist * 1000.0));
-                point = _currentLapPoints
+                point = pointsForCursor
                     .OrderBy(p => Math.Abs((long)p.Time - targetTime))
                     .FirstOrDefault();
             }
