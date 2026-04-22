@@ -141,10 +141,9 @@
                         </Border>
                     </TabItem>
 
-                    <!-- Design Settings -->
-                    <TabItem Header="PARAMÈTRES" Style="{StaticResource RibbonTabItemStyle}">
+                    <!-- Design Settings -->                    <TabItem Header="PARAMÈTRES" Style="{StaticResource RibbonTabItemStyle}">
                         <Border Background="#2d3748" CornerRadius="4" Margin="0,5,0,10" Padding="20,12">
-                            <UniformGrid Columns="7">
+                            <UniformGrid Columns="8">
                                 <!-- Speed Settings -->
                                 <StackPanel Margin="0,0,20,0">
                                     <TextBlock Text="VITESSE" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
@@ -222,7 +221,7 @@
                                 </StackPanel>
 
                                 <!-- Comparison Range Settings -->
-                                <StackPanel>
+                                <StackPanel Margin="0,0,20,0">
                                     <TextBlock Text="ÉPAYS. COMP. (RAPIDE/LENT)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -243,9 +242,34 @@
                                         <Run Text=" (Lent)"/>
                                     </TextBlock>
                                 </StackPanel>
+
+                                <!-- Regularity Thresholds -->
+                                <StackPanel Margin="20,0,0,0">
+                                    <TextBlock Text="SEUILS RÉGULARITÉ (s)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,5,0">
+                                            <TextBlock Text="Exc." FontSize="8" Foreground="#94a3b8" HorizontalAlignment="Center"/>
+                                            <ui:NumberBox Value="{Binding RegularityThresholdExcellent}" 
+                                                         SmallChange="0.01" LargeChange="0.1" SpinButtonPlacementMode="Compact"
+                                                         Minimum="0.01" Maximum="1" Height="28"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Margin="5,0,0,0">
+                                            <TextBlock Text="Moy." FontSize="8" Foreground="#94a3b8" HorizontalAlignment="Center"/>
+                                            <ui:NumberBox Value="{Binding RegularityThresholdMedium}" 
+                                                         SmallChange="0.05" LargeChange="0.2" SpinButtonPlacementMode="Compact"
+                                                         Minimum="0.05" Maximum="2" Height="28"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <TextBlock Text="Ajuster selon le niveau" FontSize="10" Foreground="White" Opacity="0.5" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                </StackPanel>
                             </UniformGrid>
                         </Border>
                     </TabItem>
+
                 </TabControl>
             </StackPanel>
         </Border>
@@ -283,53 +307,89 @@
                                 <dock:LayoutPanel Orientation="Horizontal">
                                     <dock:LayoutAnchorablePane>
                                         <dock:LayoutAnchorable x:Name="LapsPane" ContentId="LapsPane" Title="Tableau des Tours" CanClose="False" 
-                                                               IsVisibleChanged="Pane_IsVisibleChanged">
-                                        <DataGrid ItemsSource="{Binding Laps}" 
-                                                  SelectedItem="{Binding SelectedLap}"
-                                                  SelectionMode="Extended"
-                                                  SelectionChanged="DataGrid_SelectionChanged"
-                                                  AutoGenerateColumns="False" 
-                                                  IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
-                                                  CanUserReorderColumns="False" CanUserResizeRows="False"
-                                                  Background="Transparent" BorderThickness="0"
-                                                  RowStyle="{StaticResource BestLapRowStyle}"
-                                                  HorizontalGridLinesBrush="#333" GridLinesVisibility="Horizontal"
-                                                  HeadersVisibility="Column" RowBackground="Transparent">
-                                            <DataGrid.ContextMenu>
-                                                <ContextMenu>
-                                                    <MenuItem Header="Définir comme RÉFÉRENCE" Command="{Binding SetReferenceCommand}"/>
-                                                    <MenuItem Header="Effacer la référence" Command="{Binding ClearReferenceCommand}"/>
-                                                </ContextMenu>
-                                            </DataGrid.ContextMenu>
-                                            <DataGrid.Columns>
-                                                <DataGridTextColumn Header="Tour" Binding="{Binding Number}" Width="50" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
-                                                <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="80"/>
-                                                <DataGridTextColumn Header="Cumulé" Binding="{Binding CumulativeTime}" Width="90" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
-                                                <DataGridTextColumn Header="Temps" Binding="{Binding LapTime}" Width="90" CellStyle="{StaticResource CenterAlignedCellStyle}">
-                                                    <DataGridTextColumn.ElementStyle>
-                                                        <Style TargetType="TextBlock">
-                                                            <Setter Property="FontWeight" Value="Bold"/>
-                                                            <Setter Property="HorizontalAlignment" Value="Center"/>
-                                                        </Style>
-                                                    </DataGridTextColumn.ElementStyle>
-                                                </DataGridTextColumn>
-                                                <DataGridTextColumn Header="Vmax" Binding="{Binding MaxSpeed, StringFormat={}{0:F0} km/h}" Width="85" CellStyle="{StaticResource MaxHighlightCellStyle}"/>
-                                                <DataGridTextColumn Header="Vmin" Binding="{Binding MinSpeed, StringFormat={}{0:F0} km/h}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
-                                                <DataGridTextColumn Header="Gauch" Binding="{Binding MaxLeanLeft, StringFormat={}{0:F0}°}" Width="65" CellStyle="{StaticResource MaxHighlightCellStyle}"/>
-                                                <DataGridTextColumn Header="Droit" Binding="{Binding MaxLeanRight, StringFormat={}{0:F0}°}" Width="65" CellStyle="{StaticResource MaxHighlightCellStyle}"/>
-                                                <DataGridTextColumn Header="Accel" Binding="{Binding MaxAccel, StringFormat={}{0:F2} g}" Width="65" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
-                                                <DataGridTextColumn Header="Decel" Binding="{Binding MaxDecel, StringFormat={}{0:F2} g}" Width="65" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
-                                                <DataGridTextColumn Header="P1" Binding="{Binding Partials[0]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}" 
-                                                                    Visibility="{Binding DataContext.IsP1Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                <DataGridTextColumn Header="P2" Binding="{Binding Partials[1]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"
-                                                                    Visibility="{Binding DataContext.IsP2Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                <DataGridTextColumn Header="P3" Binding="{Binding Partials[2]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"
-                                                                    Visibility="{Binding DataContext.IsP3Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                <DataGridTextColumn Header="P4" Binding="{Binding Partials[3]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"
-                                                                    Visibility="{Binding DataContext.IsP4Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                            </DataGrid.Columns>
-                                        </DataGrid>
+                                                           IsVisibleChanged="Pane_IsVisibleChanged">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            
+                                            <DataGrid Grid.Row="0" ItemsSource="{Binding Laps}" 
+                                                      SelectedItem="{Binding SelectedLap}"
+                                                      SelectionMode="Extended"
+                                                      SelectionChanged="DataGrid_SelectionChanged"
+                                                      AutoGenerateColumns="False" 
+                                                      IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
+                                                      CanUserReorderColumns="False" CanUserResizeRows="False"
+                                                      Background="Transparent" BorderThickness="0"
+                                                      RowStyle="{StaticResource BestLapRowStyle}"
+                                                      HorizontalGridLinesBrush="#333" GridLinesVisibility="Horizontal"
+                                                      HeadersVisibility="Column" RowBackground="Transparent">
+                                                <DataGrid.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="Définir comme RÉFÉRENCE" Command="{Binding SetReferenceCommand}"/>
+                                                        <MenuItem Header="Effacer la référence" Command="{Binding ClearReferenceCommand}"/>
+                                                    </ContextMenu>
+                                                </DataGrid.ContextMenu>
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="Tour" Binding="{Binding Number}" Width="50" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
+                                                    <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="80"/>
+                                                    <DataGridTextColumn Header="Cumulé" Binding="{Binding CumulativeTime}" Width="90" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
+                                                    <DataGridTextColumn Header="Temps" Binding="{Binding LapTime}" Width="90" CellStyle="{StaticResource CenterAlignedCellStyle}">
+                                                        <DataGridTextColumn.ElementStyle>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="FontWeight" Value="Bold"/>
+                                                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                                            </Style>
+                                                        </DataGridTextColumn.ElementStyle>
+                                                    </DataGridTextColumn>
+                                                    <DataGridTextColumn Header="Vmax" Binding="{Binding MaxSpeed, StringFormat={}{0:F0} km/h}" Width="85" CellStyle="{StaticResource MaxHighlightCellStyle}"/>
+                                                    <DataGridTextColumn Header="Vmin" Binding="{Binding MinSpeed, StringFormat={}{0:F0} km/h}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
+                                                    <DataGridTextColumn Header="Gauch" Binding="{Binding MaxLeanLeft, StringFormat={}{0:F0}°}" Width="65" CellStyle="{StaticResource MaxHighlightCellStyle}"/>
+                                                    <DataGridTextColumn Header="Droit" Binding="{Binding MaxLeanRight, StringFormat={}{0:F0}°}" Width="65" CellStyle="{StaticResource MaxHighlightCellStyle}"/>
+                                                    <DataGridTextColumn Header="Accel" Binding="{Binding MaxAccel, StringFormat={}{0:F2} g}" Width="65" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
+                                                    <DataGridTextColumn Header="Decel" Binding="{Binding MaxDecel, StringFormat={}{0:F2} g}" Width="65" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
+                                                    <DataGridTextColumn Header="P1" Binding="{Binding Partials[0]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}" 
+                                                                        Visibility="{Binding DataContext.IsP1Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                    <DataGridTextColumn Header="P2" Binding="{Binding Partials[1]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"
+                                                                        Visibility="{Binding DataContext.IsP2Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                    <DataGridTextColumn Header="P3" Binding="{Binding Partials[2]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"
+                                                                        Visibility="{Binding DataContext.IsP3Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                    <DataGridTextColumn Header="P4" Binding="{Binding Partials[3]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"
+                                                                        Visibility="{Binding DataContext.IsP4Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+
+                                            <!-- Résumé de Régularité -->
+                                            <Border Grid.Row="1" Background="#1e293b" Padding="12,10" BorderBrush="#334155" BorderThickness="0,1,0,0"
+                                                    Visibility="{Binding IsRegularityVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <StackPanel>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                        <ui:SymbolIcon Symbol="Sync" Foreground="Cyan" Margin="0,0,6,0"/>
+                                                        <TextBlock Text="RÉGULARITÉ (σ - Écart-type)" FontSize="11" FontWeight="Bold" Foreground="White" Opacity="0.8"/>
+                                                    </StackPanel>
+                                                    <ItemsControl ItemsSource="{Binding RegularityStats}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel Orientation="Horizontal"/>
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border Background="{Binding Color}" CornerRadius="4" Padding="10,6" Margin="0,0,8,8" MinWidth="85">
+                                                                    <StackPanel>
+                                                                        <TextBlock Text="{Binding Label}" FontSize="10" Foreground="White" FontWeight="Bold" Opacity="0.9" HorizontalAlignment="Center"/>
+                                                                        <TextBlock Text="{Binding StdDev, StringFormat={}{0:F3}s}" FontSize="13" Foreground="White" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                                                    </StackPanel>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
                                     </dock:LayoutAnchorable>
+
                                 </dock:LayoutAnchorablePane>
 
                                 <!-- Session Info Panel -->

@@ -159,6 +159,24 @@ namespace Analyzer.ViewModels
 
         private List<TelemetryPoint> _currentLapPoints = new();
         private List<TelemetryPoint>? _interpolatedPoints;
+        public ObservableCollection<RegularityItem> RegularityStats { get; } = new();
+
+        private bool _isRegularityVisible;
+        public bool IsRegularityVisible { get => _isRegularityVisible; set => SetProperty(ref _isRegularityVisible, value); }
+
+        private double _regularityThresholdExcellent = 0.10;
+        public double RegularityThresholdExcellent 
+        { 
+            get => _regularityThresholdExcellent; 
+            set { if (SetProperty(ref _regularityThresholdExcellent, value)) UpdateRegularityStats(); } 
+        }
+
+        private double _regularityThresholdMedium = 0.30;
+        public double RegularityThresholdMedium 
+        { 
+            get => _regularityThresholdMedium; 
+            set { if (SetProperty(ref _regularityThresholdMedium, value)) UpdateRegularityStats(); } 
+        }
 
         private LapData _selectedLap = null!;
         public LapData SelectedLap
@@ -1236,6 +1254,9 @@ namespace Analyzer.ViewModels
             });
             Sections = sectionsList.ToArray();
             UpdateCursor(0);
+
+            // Calculer les statistiques de régularité
+            UpdateRegularityStats();
         }
 
         public void UpdateCursor(double timeOrDist)
@@ -1431,5 +1452,55 @@ namespace Analyzer.ViewModels
 
             return DateTime.Now;
         }
+
+        private void UpdateRegularityStats()
+        {
+            RegularityStats.Clear();
+            var laps = ComparisonLaps.Where(l => l.LapTimeMs > 0).ToList();
+            
+            if (laps.Count < 2)
+            {
+                IsRegularityVisible = false;
+                return;
+            }
+
+            IsRegularityVisible = true;
+            AddRegularityItem("Total", laps.Select(l => (double)l.LapTimeMs / 1000.0).ToList());
+
+            int numSectors = CurrentSession?.PartialCount ?? 0;
+            for (int i = 0; i < numSectors; i++)
+            {
+                int sectorIndex = i;
+                var sectorTimes = laps
+                    .Select(l => ParseTimeToMs(l.Partials[sectorIndex]) / 1000.0)
+                    .Where(t => t > 0)
+                    .ToList();
+
+                if (sectorTimes.Count >= 2)
+                {
+                    AddRegularityItem($"P{i + 1}", sectorTimes);
+                }
+            }
+        }
+
+        private void AddRegularityItem(string label, List<double> values)
+        {
+            double avg = values.Average();
+            double sumSquares = values.Select(v => Math.Pow(v - avg, 2)).Sum();
+            double stdDev = Math.Sqrt(sumSquares / values.Count);
+
+            string color = "#10b981"; // Vert
+            if (stdDev > RegularityThresholdMedium) color = "#ef4444"; // Rouge
+            else if (stdDev > RegularityThresholdExcellent) color = "#f59e0b"; // Orange
+
+            RegularityStats.Add(new RegularityItem { Label = label, StdDev = stdDev, Color = color });
+        }
+    }
+
+    public class RegularityItem
+    {
+        public string Label { get; set; } = "";
+        public double StdDev { get; set; }
+        public string Color { get; set; } = "#FFFFFF";
     }
 }
