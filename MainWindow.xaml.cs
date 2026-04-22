@@ -208,6 +208,7 @@ namespace Analyzer
                     "AngleColor" => vm.AngleColor,
                     "AngleRightColor" => vm.AngleRightColor,
                     "AccelColor" => vm.AccelColor,
+                    "DecelColor" => vm.DecelColor,
                     "RefColor" => vm.RefColor,
                     _ => "#FFFFFF"
                 };
@@ -228,6 +229,7 @@ namespace Analyzer
                         case "AngleColor": vm.AngleColor = newHex; break;
                         case "AngleRightColor": vm.AngleRightColor = newHex; break;
                         case "AccelColor": vm.AccelColor = newHex; break;
+                        case "DecelColor": vm.DecelColor = newHex; break;
                         case "RefColor": vm.RefColor = newHex; break;
                     }
                 }

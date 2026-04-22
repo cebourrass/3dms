@@ -15,6 +15,13 @@ namespace Analyzer.Models
         public bool IsMapVisible { get; set; } = true;
         public bool IsChartsVisible { get; set; } = true;
         public bool IsExplorerVisible { get; set; } = true;
+        
+        public bool ShowSpeed { get; set; } = true;
+        public bool ShowAngleLeft { get; set; } = true;
+        public bool ShowAngleRight { get; set; } = true;
+        public bool ShowAccel { get; set; } = false;
+        public bool ShowDecel { get; set; } = false;
+        public bool ShowReference { get; set; } = true;
 
         // Styles des courbes
         public string SpeedColor { get; set; } = "#10b981";
@@ -25,6 +32,8 @@ namespace Analyzer.Models
         public float AngleRightThickness { get; set; } = 1.8f;
         public string AccelColor { get; set; } = "#8b5cf6";
         public float AccelThickness { get; set; } = 1.8f;
+        public string DecelColor { get; set; } = "#ef4444";
+        public float DecelThickness { get; set; } = 1.8f;
         public string RefColor { get; set; } = "#ffffff";
         public float RefThickness { get; set; } = 1.5f;
 

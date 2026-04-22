@@ -144,7 +144,7 @@
                     <!-- Design Settings -->
                     <TabItem Header="PARAMÈTRES" Style="{StaticResource RibbonTabItemStyle}">
                         <Border Background="#2d3748" CornerRadius="4" Margin="0,5,0,10" Padding="20,12">
-                            <UniformGrid Columns="6">
+                            <UniformGrid Columns="7">
                                 <!-- Speed Settings -->
                                 <StackPanel Margin="0,0,20,0">
                                     <TextBlock Text="VITESSE" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
@@ -182,7 +182,7 @@
 
                                 <!-- Accel Settings -->
                                 <StackPanel Margin="0,0,20,0">
-                                    <TextBlock Text="ACCEL" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                    <TextBlock Text="ACCEL (GAZ)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
                                     <Button Click="PickColor_Click" Tag="AccelColor" HorizontalAlignment="Stretch" Height="28" Padding="8,0" ui:ControlHelper.CornerRadius="4">
                                         <StackPanel Orientation="Horizontal">
                                             <Border Width="14" Height="14" Background="{Binding AccelColor}" CornerRadius="2" Margin="0,0,10,0" BorderBrush="#888" BorderThickness="1"/>
@@ -190,6 +190,17 @@
                                         </StackPanel>
                                     </Button>
                                     <Slider Minimum="0.5" Maximum="5" Value="{Binding AccelThickness}" Margin="0,6,0,0"/>
+                                </StackPanel>
+
+                                <StackPanel Margin="0,0,20,0">
+                                    <TextBlock Text="DÉCÉL (FREIN)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                    <Button Click="PickColor_Click" Tag="DecelColor" HorizontalAlignment="Stretch" Height="28" Padding="8,0" ui:ControlHelper.CornerRadius="4">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Width="14" Height="14" Background="{Binding DecelColor}" CornerRadius="2" Margin="0,0,10,0" BorderBrush="#888" BorderThickness="1"/>
+                                            <TextBlock Text="{Binding DecelColor}" FontSize="11" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Slider Minimum="0.5" Maximum="5" Value="{Binding DecelThickness}" Margin="0,6,0,0"/>
                                 </StackPanel>
 
                                 <!-- Reference Settings -->
@@ -439,8 +450,10 @@
                                             
                                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                                                 <CheckBox Content="Vitesse" IsChecked="{Binding ShowSpeed}" Foreground="Cyan" Margin="0,0,15,0"/>
-                                                <CheckBox Content="Angles (G/D)" IsChecked="{Binding ShowAngle}" Foreground="White" Margin="0,0,15,0"/>
-                                                <CheckBox Content="G (Accel)" IsChecked="{Binding ShowAccel}" Foreground="Magenta" Margin="0,0,15,0"/>
+                                                <CheckBox Content="Angle G" IsChecked="{Binding ShowAngleLeft}" Foreground="White" Margin="0,0,10,0"/>
+                                                <CheckBox Content="Angle D" IsChecked="{Binding ShowAngleRight}" Foreground="White" Margin="0,0,15,0"/>
+                                                <CheckBox Content="Accel" IsChecked="{Binding ShowAccel}" Foreground="White" Margin="0,0,10,0"/>
+                                                <CheckBox Content="Deccel" IsChecked="{Binding ShowDecel}" Foreground="White" Margin="0,0,10,0"/>
                                                 <Rectangle Width="1" Height="16" Fill="#444" Margin="0,0,15,0"/>
                                                 <CheckBox Content="RÉFÉRENCE" IsChecked="{Binding ShowReference}" Foreground="White" FontWeight="Bold" Margin="0,0,15,0"/>
                                                 <Rectangle Width="1" Height="16" Fill="#444" Margin="0,0,15,0"/>
@@ -490,14 +503,14 @@
                                                     <TextBlock Text="{Binding CurrentSpeed, StringFormat={}{0:F1} km/h}" FontSize="16" FontWeight="Bold" Foreground="Cyan" Width="90"/>
                                                 </StackPanel>
 
-                                                <StackPanel Margin="0,0,40,0" Visibility="{Binding ShowAngle, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <StackPanel Margin="0,0,40,0" Visibility="{Binding IsAnyAngleVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                     <TextBlock Text="Angle" FontSize="11" Opacity="0.6" Margin="0,0,0,2"/>
                                                     <TextBlock Text="{Binding CurrentAngle, StringFormat={}{0:F0}°}" FontSize="16" FontWeight="Bold" Foreground="{Binding CurrentAngleColor}" Width="60"/>
                                                 </StackPanel>
 
-                                                <StackPanel Visibility="{Binding ShowAccel, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                    <TextBlock Text="Accélération" FontSize="11" Opacity="0.6" Margin="0,0,0,2"/>
-                                                    <TextBlock Text="{Binding CurrentAccel, StringFormat={}{0:F2} g}" FontSize="16" FontWeight="Bold" Foreground="Magenta" Width="70"/>
+                                                <StackPanel Visibility="{Binding IsAnyAccelVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <TextBlock Text="Long. G" FontSize="11" Opacity="0.6" Margin="0,0,0,2"/>
+                                                    <TextBlock Text="{Binding CurrentAccel, StringFormat={}{0:F2} G}" FontSize="16" FontWeight="Bold" Foreground="{Binding CurrentAccelColor}" Width="70"/>
                                                 </StackPanel>
                                             </StackPanel>
                                         </Border>
