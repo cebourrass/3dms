@@ -41,6 +41,12 @@ namespace Analyzer.Models
         public float CompFastThickness { get; set; } = 1.5f;
         public float CompSlowThickness { get; set; } = 0.5f;
 
+        // Lissage des courbes (Interpolation)
+        // 1: Aucun, 2: Bas (window=2), 3: Moyen (window=4), 5: Haut (window=7)
+        public int SpeedSmoothing { get; set; } = 3;
+        public int AngleSmoothing { get; set; } = 3;
+        public int AccelSmoothing { get; set; } = 3;
+
         // Dernière session
         public string? LastFilePath { get; set; }
     }

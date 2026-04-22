@@ -155,6 +155,9 @@
                                     </Button>
                                     <Slider Minimum="0.5" Maximum="5" Value="{Binding SpeedThickness}" Margin="0,6,0,0"/>
                                     <TextBlock Text="{Binding SpeedThickness, StringFormat='{}{0:F1}'}" FontSize="10" Foreground="White" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    
+                                    <TextBlock Text="LISSAGE" FontSize="8" FontWeight="Bold" Foreground="#64748b" Margin="0,8,0,2" HorizontalAlignment="Center"/>
+                                    <ComboBox ItemsSource="{Binding SmoothingOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding SpeedSmoothing}" Height="24" Padding="4,0" ui:ControlHelper.CornerRadius="4" FontSize="10"/>
                                 </StackPanel>
                                 
                                 <!-- Angle Settings -->
@@ -168,6 +171,9 @@
                                     </Button>
                                     <Slider Minimum="0.5" Maximum="5" Value="{Binding AngleThickness}" Margin="0,6,0,0"/>
                                     <TextBlock Text="{Binding AngleThickness, StringFormat='{}{0:F1}'}" FontSize="10" Foreground="White" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+
+                                    <TextBlock Text="LISSAGE" FontSize="8" FontWeight="Bold" Foreground="#64748b" Margin="0,8,0,2" HorizontalAlignment="Center"/>
+                                    <ComboBox ItemsSource="{Binding SmoothingOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding AngleSmoothing}" Height="24" Padding="4,0" ui:ControlHelper.CornerRadius="4" FontSize="10"/>
                                 </StackPanel>
 
                                 <StackPanel Margin="0,0,20,0">
@@ -193,6 +199,9 @@
                                     </Button>
                                     <Slider Minimum="0.5" Maximum="5" Value="{Binding AccelThickness}" Margin="0,6,0,0"/>
                                     <TextBlock Text="{Binding AccelThickness, StringFormat='{}{0:F1}'}" FontSize="10" Foreground="White" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+
+                                    <TextBlock Text="LISSAGE" FontSize="8" FontWeight="Bold" Foreground="#64748b" Margin="0,8,0,2" HorizontalAlignment="Center"/>
+                                    <ComboBox ItemsSource="{Binding SmoothingOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding AccelSmoothing}" Height="24" Padding="4,0" ui:ControlHelper.CornerRadius="4" FontSize="10"/>
                                 </StackPanel>
 
                                 <StackPanel Margin="0,0,20,0">

@@ -122,6 +122,29 @@ namespace Analyzer.ViewModels
         private float _refThickness = 1.2f;
         public float RefThickness { get => _refThickness; set { if (SetProperty(ref _refThickness, value)) UpdateTelemetryCharts(); } }
 
+        private int _speedSmoothing;
+        public int SpeedSmoothing { get => _speedSmoothing; set { if (SetProperty(ref _speedSmoothing, value)) UpdateTelemetryCharts(); } }
+
+        private int _angleSmoothing;
+        public int AngleSmoothing { get => _angleSmoothing; set { if (SetProperty(ref _angleSmoothing, value)) UpdateTelemetryCharts(); } }
+
+        private int _accelSmoothing;
+        public int AccelSmoothing { get => _accelSmoothing; set { if (SetProperty(ref _accelSmoothing, value)) UpdateTelemetryCharts(); } }
+
+        public class SmoothingOption
+        {
+            public string Name { get; set; } = string.Empty;
+            public int Value { get; set; }
+        }
+
+        public List<SmoothingOption> SmoothingOptions { get; } = new()
+        {
+            new SmoothingOption { Name = "Brut", Value = 1 },
+            new SmoothingOption { Name = "Standard", Value = 3 },
+            new SmoothingOption { Name = "Lissage fort", Value = 5 },
+            new SmoothingOption { Name = "Très fort", Value = 8 }
+        };
+
         // Comparison Thickness Range (Fast/Slow)
         private float _compFastThickness = 1.5f;
         public float CompFastThickness { get => _compFastThickness; set { if (SetProperty(ref _compFastThickness, value)) UpdateTelemetryCharts(); } }
@@ -411,6 +434,10 @@ namespace Analyzer.ViewModels
             _compFastThickness = _settings.CompFastThickness;
             _compSlowThickness = _settings.CompSlowThickness;
 
+            _speedSmoothing = _settings.SpeedSmoothing;
+            _angleSmoothing = _settings.AngleSmoothing;
+            _accelSmoothing = _settings.AccelSmoothing;
+
             _isLapsVisible = _settings.IsLapsVisible;
             _isSessionInfoVisible = _settings.IsSessionInfoVisible;
             _isMapVisible = _settings.IsMapVisible;
@@ -469,6 +496,10 @@ namespace Analyzer.ViewModels
 
             _settings.CompFastThickness = CompFastThickness;
             _settings.CompSlowThickness = CompSlowThickness;
+
+            _settings.SpeedSmoothing = SpeedSmoothing;
+            _settings.AngleSmoothing = AngleSmoothing;
+            _settings.AccelSmoothing = AccelSmoothing;
 
             _settings.LastFilePath = CurrentSession?.FilePath;
 
@@ -937,11 +968,11 @@ namespace Analyzer.ViewModels
 
                 if (ShowAccel)
                 {
-                    // Courbe Accélération (Points positifs)
+                    // Courbe Accélération (Points NÉGATIFS dans le log mis en positif)
                     seriesList.Add(new LineSeries<ObservablePoint?>
                     {
-                        Values = processedPoints.Select(p => p.Acceleration >= 0 
-                            ? new ObservablePoint(useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, (double)p.Acceleration * 40)
+                        Values = processedPoints.Select(p => p.Acceleration < 0 
+                            ? new ObservablePoint(useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, (double)-p.Acceleration * 40)
                             : (ObservablePoint?)null
                         ).ToArray(),
                         Name = !legendAdded ? (label != null ? $"{label} (Acc)" : "Accel") : null,
@@ -955,11 +986,11 @@ namespace Analyzer.ViewModels
 
                 if (ShowDecel)
                 {
-                    // Courbe Décélération (Points négatifs mis en positif)
+                    // Courbe Décélération (Points POSITIFS dans le log)
                     seriesList.Add(new LineSeries<ObservablePoint?>
                     {
-                        Values = processedPoints.Select(p => p.Acceleration < 0 
-                            ? new ObservablePoint(useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, (double)-p.Acceleration * 40)
+                        Values = processedPoints.Select(p => p.Acceleration >= 0 
+                            ? new ObservablePoint(useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, (double)p.Acceleration * 40)
                             : (ObservablePoint?)null
                         ).ToArray(),
                         Name = label != null ? $"{label} (Frein)" : "Frein",
@@ -978,24 +1009,35 @@ namespace Analyzer.ViewModels
             if (rawPoints.Count < 2) return rawPoints;
 
             var smoothed = new List<TelemetryPoint>();
-            int window = 3;
+            
             for (int i = 0; i < rawPoints.Count; i++)
             {
-                int start = Math.Max(0, i - window / 2);
-                int end = Math.Min(rawPoints.Count - 1, i + window / 2);
-                int count = end - start + 1;
+                var pt = new TelemetryPoint { Time = rawPoints[i].Time };
+                
+                // Lissage Vitesse
+                int sWindow = Math.Max(1, SpeedSmoothing);
+                int sStart = Math.Max(0, i - sWindow / 2);
+                int sEnd = Math.Min(rawPoints.Count - 1, i + sWindow / 2);
+                pt.Speed = (float)rawPoints.Skip(sStart).Take(sEnd - sStart + 1).Average(p => (double)p.Speed);
+                
+                // Lissage Angle
+                int aWindow = Math.Max(1, AngleSmoothing);
+                int aStart = Math.Max(0, i - aWindow / 2);
+                int aEnd = Math.Min(rawPoints.Count - 1, i + aWindow / 2);
+                pt.LeanAngle = (float)rawPoints.Skip(aStart).Take(aEnd - aStart + 1).Average(p => (double)p.LeanAngle);
+                
+                // Lissage Accélération
+                int gWindow = Math.Max(1, AccelSmoothing);
+                int gStart = Math.Max(0, i - gWindow / 2);
+                int gEnd = Math.Min(rawPoints.Count - 1, i + gWindow / 2);
+                pt.Acceleration = (float)rawPoints.Skip(gStart).Take(gEnd - gStart + 1).Average(p => (double)p.Acceleration);
+                
+                // Coordonnées et Distance (pas de lissage ou fixe pour garder la cohérence spatiale)
+                pt.Distance = rawPoints[i].Distance;
+                pt.Latitude = rawPoints[i].Latitude;
+                pt.Longitude = rawPoints[i].Longitude;
 
-                var avg = new TelemetryPoint
-                {
-                    Time = rawPoints[i].Time,
-                    Distance = (float)rawPoints.Skip(start).Take(count).Average(p => (double)p.Distance),
-                    Speed = (float)rawPoints.Skip(start).Take(count).Average(p => (double)p.Speed),
-                    LeanAngle = (float)rawPoints.Skip(start).Take(count).Average(p => (double)p.LeanAngle),
-                    Acceleration = (float)rawPoints.Skip(start).Take(count).Average(p => (double)p.Acceleration),
-                    Latitude = (float)rawPoints.Skip(start).Take(count).Average(p => (double)p.Latitude),
-                    Longitude = (float)rawPoints.Skip(start).Take(count).Average(p => (double)p.Longitude)
-                };
-                smoothed.Add(avg);
+                smoothed.Add(pt);
             }
 
             var interpolated = new List<TelemetryPoint>();

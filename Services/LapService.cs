@@ -90,8 +90,8 @@ namespace Analyzer.Services
                 MinSpeed = lapPoints.Min(p => p.Speed),
                 MaxLeanLeft = lapPoints.Max(p => p.LeanAngle < 0 ? -p.LeanAngle : 0),
                 MaxLeanRight = lapPoints.Max(p => p.LeanAngle > 0 ? p.LeanAngle : 0),
-                MaxAccel = lapPoints.Max(p => p.Acceleration),
-                MaxDecel = Math.Abs(lapPoints.Min(p => p.Acceleration)),
+                MaxAccel = lapPoints.Min(p => p.Acceleration) < 0 ? Math.Abs(lapPoints.Min(p => p.Acceleration)) : 0,
+                MaxDecel = lapPoints.Max(p => p.Acceleration) > 0 ? lapPoints.Max(p => p.Acceleration) : 0,
             };
 
             // Détection des Partiels (P1, P2...) avec Interpolation
