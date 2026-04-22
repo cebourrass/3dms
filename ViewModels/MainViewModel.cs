@@ -334,13 +334,25 @@ namespace Analyzer.ViewModels
 
         public Axis[] YAxes { get; set; } = 
         {
-            new Axis
+            new Axis // Axe 0 (Gauche) : Vitesse
             {
-                Name = "Données",
+                Name = "Vitesse (km/h)",
                 NamePaint = new SolidColorPaint(new SKColor(148, 163, 184)),
                 LabelsPaint = new SolidColorPaint(new SKColor(100, 116, 139)),
                 TextSize = 9,
                 Labeler = value => Math.Round(value).ToString(),
+                Position = LiveChartsCore.Measure.AxisPosition.Start,
+                MinStep = 50, // Moins de lignes (une ligne tous les 50 km/h minimum)
+                SeparatorsPaint = new SolidColorPaint(new SKColor(100, 116, 139, 40), 0.5f) // Quadrillage très fin et discret
+            },
+            new Axis // Axe 1 (Droite) : Angle / G
+            {
+                Name = "Angle (°) / G",
+                NamePaint = new SolidColorPaint(new SKColor(148, 163, 184)),
+                LabelsPaint = new SolidColorPaint(new SKColor(100, 116, 139)),
+                TextSize = 9,
+                Labeler = value => Math.Round(value, 1).ToString(),
+                Position = LiveChartsCore.Measure.AxisPosition.End,
                 ShowSeparatorLines = false
             }
         };
@@ -869,7 +881,8 @@ namespace Analyzer.ViewModels
                     Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(SpeedColor), thickness),
                     GeometrySize = 0,
                     Fill = null,
-                    LineSmoothness = smoothness
+                    LineSmoothness = smoothness,
+                    ScalesYAt = 0 // Axe de gauche
                 });
                 legendAdded = true;
             }
@@ -892,7 +905,8 @@ namespace Analyzer.ViewModels
                         Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(AngleColor), thickness),
                         GeometrySize = 0,
                         Fill = null,
-                        LineSmoothness = smoothness
+                        LineSmoothness = smoothness,
+                        ScalesYAt = 1 // Axe de droite
                     });
                 }
 
@@ -909,7 +923,8 @@ namespace Analyzer.ViewModels
                         Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(AngleRightColor), thicknessRight),
                         GeometrySize = 0,
                         Fill = null,
-                        LineSmoothness = smoothness
+                        LineSmoothness = smoothness,
+                        ScalesYAt = 1 // Axe de droite
                     });
                 }
                 legendAdded = true;
@@ -926,14 +941,15 @@ namespace Analyzer.ViewModels
                     seriesList.Add(new LineSeries<ObservablePoint?>
                     {
                         Values = processedPoints.Select(p => p.Acceleration >= 0 
-                            ? new ObservablePoint(useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, (double)p.Acceleration * 50)
+                            ? new ObservablePoint(useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, (double)p.Acceleration * 40)
                             : (ObservablePoint?)null
                         ).ToArray(),
                         Name = !legendAdded ? (label != null ? $"{label} (Acc)" : "Accel") : null,
                         Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(AccelColor), thickness),
                         GeometrySize = 0,
                         Fill = null,
-                        LineSmoothness = smoothness
+                        LineSmoothness = smoothness,
+                        ScalesYAt = 1 // Axe de droite
                     });
                 }
 
@@ -943,17 +959,17 @@ namespace Analyzer.ViewModels
                     seriesList.Add(new LineSeries<ObservablePoint?>
                     {
                         Values = processedPoints.Select(p => p.Acceleration < 0 
-                            ? new ObservablePoint(useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, (double)-p.Acceleration * 50)
+                            ? new ObservablePoint(useDistance ? (double)(p.Distance - startDist) : (p.Time - lapStart) / 1000.0, (double)-p.Acceleration * 40)
                             : (ObservablePoint?)null
                         ).ToArray(),
                         Name = label != null ? $"{label} (Frein)" : "Frein",
                         Stroke = new SolidColorPaint(overrideColor ?? SKColor.Parse(DecelColor), thicknessDecel),
                         GeometrySize = 0,
                         Fill = null,
-                        LineSmoothness = smoothness
+                        LineSmoothness = smoothness,
+                        ScalesYAt = 1 // Axe de droite
                     });
                 }
-                legendAdded = true;
             }
         }
 
