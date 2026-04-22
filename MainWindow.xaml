@@ -141,7 +141,8 @@
                         </Border>
                     </TabItem>
 
-                    <!-- Design Settings -->                    <TabItem Header="PARAMÈTRES" Style="{StaticResource RibbonTabItemStyle}">
+                    <!-- Design Settings -->
+                    <TabItem Header="PARAMÈTRES" Style="{StaticResource RibbonTabItemStyle}">
                         <Border Background="#2d3748" CornerRadius="4" Margin="0,5,0,10" Padding="20,12">
                             <UniformGrid Columns="8">
                                 <!-- Speed Settings -->
@@ -299,314 +300,98 @@
                 </StackPanel>
             </Grid>
 
-                <!-- Content Area -->
-                <dock:DockingManager Grid.Row="1" x:Name="DockManager">
-                    <dock:LayoutRoot>
-                        <dock:LayoutPanel Orientation="Horizontal">
-                            <!-- Explorateur sur la gauche -->
-                            <dock:LayoutAnchorablePane DockWidth="250">
-                                <dock:LayoutAnchorable x:Name="ExplorerPane" ContentId="ExplorerPane" Title="Explorateur" CanClose="False" IsVisibleChanged="Pane_IsVisibleChanged">
-                                    <TreeView ItemsSource="{Binding ExplorerItems}" Background="#1a202c" 
-                                              BorderThickness="0" Margin="5" SelectedItemChanged="TreeView_SelectedItemChanged">
-                                    </TreeView>
-                                </dock:LayoutAnchorable>
-                            </dock:LayoutAnchorablePane>
+            <!-- Content Area -->
+            <dock:DockingManager Grid.Row="1" x:Name="DockManager">
+                <dock:LayoutRoot>
+                    <dock:LayoutPanel Orientation="Horizontal">
+                        <!-- Explorateur sur la gauche -->
+                        <dock:LayoutAnchorablePane DockWidth="250">
+                            <dock:LayoutAnchorable x:Name="ExplorerPane" ContentId="ExplorerPane" Title="Explorateur" CanClose="False" IsVisibleChanged="Pane_IsVisibleChanged">
+                                <TreeView ItemsSource="{Binding ExplorerItems}" Background="#1a202c" 
+                                          BorderThickness="0" Margin="5" SelectedItemChanged="TreeView_SelectedItemChanged">
+                                </TreeView>
+                            </dock:LayoutAnchorable>
+                        </dock:LayoutAnchorablePane>
 
-                            <dock:LayoutPanel Orientation="Vertical">
-                                <dock:LayoutPanel Orientation="Horizontal">
-                                    <dock:LayoutAnchorablePane>
-                                        <dock:LayoutAnchorable x:Name="LapsPane" ContentId="LapsPane" Title="Tableau des Tours" CanClose="False" 
-                                                           IsVisibleChanged="Pane_IsVisibleChanged">
-                                        <Grid>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="*"/>
-                                                <RowDefinition Height="Auto"/>
-                                            </Grid.RowDefinitions>
-                                            
-                                            <DataGrid Grid.Row="0" ItemsSource="{Binding Laps}" 
-                                                      SelectedItem="{Binding SelectedLap}"
-                                                      SelectionMode="Extended"
-                                                      SelectionChanged="DataGrid_SelectionChanged"
-                                                      AutoGenerateColumns="False" 
-                                                      IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
-                                                      CanUserReorderColumns="False" CanUserResizeRows="False"
-                                                      Background="Transparent" BorderThickness="0"
-                                                      RowStyle="{StaticResource BestLapRowStyle}"
-                                                      HorizontalGridLinesBrush="#333" GridLinesVisibility="Horizontal"
-                                                      HeadersVisibility="Column" RowBackground="Transparent">
-                                                <DataGrid.ContextMenu>
-                                                    <ContextMenu>
-                                                        <MenuItem Header="Définir comme RÉFÉRENCE" Command="{Binding SetReferenceCommand}"/>
-                                                        <MenuItem Header="Effacer la référence" Command="{Binding ClearReferenceCommand}"/>
-                                                    </ContextMenu>
-                                                </DataGrid.ContextMenu>
-                                                <DataGrid.Columns>
-                                                    <DataGridTextColumn Header="Tour" Binding="{Binding Number}" Width="50" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
-                                                    <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="80"/>
-                                                    <DataGridTextColumn Header="Cumulé" Binding="{Binding CumulativeTime}" Width="90" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
-                                                    <DataGridTextColumn Header="Temps" Binding="{Binding LapTime}" Width="90" CellStyle="{StaticResource CenterAlignedCellStyle}">
-                                                        <DataGridTextColumn.ElementStyle>
-                                                            <Style TargetType="TextBlock">
-                                                                <Setter Property="FontWeight" Value="Bold"/>
-                                                                <Setter Property="HorizontalAlignment" Value="Center"/>
-                                                            </Style>
-                                                        </DataGridTextColumn.ElementStyle>
-                                                    </DataGridTextColumn>
-                                                    <DataGridTextColumn Header="Vmax" Binding="{Binding MaxSpeed, StringFormat={}{0:F0} km/h}" Width="85" CellStyle="{StaticResource MaxHighlightCellStyle}"/>
-                                                    <DataGridTextColumn Header="Vmin" Binding="{Binding MinSpeed, StringFormat={}{0:F0} km/h}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
-                                                    <DataGridTextColumn Header="Gauch" Binding="{Binding MaxLeanLeft, StringFormat={}{0:F0}°}" Width="65" CellStyle="{StaticResource MaxHighlightCellStyle}"/>
-                                                    <DataGridTextColumn Header="Droit" Binding="{Binding MaxLeanRight, StringFormat={}{0:F0}°}" Width="65" CellStyle="{StaticResource MaxHighlightCellStyle}"/>
-                                                    <DataGridTextColumn Header="Accel" Binding="{Binding MaxAccel, StringFormat={}{0:F2} g}" Width="65" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
-                                                    <DataGridTextColumn Header="Decel" Binding="{Binding MaxDecel, StringFormat={}{0:F2} g}" Width="65" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
-                                                    <DataGridTextColumn Header="P1" Binding="{Binding Partials[0]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}" 
-                                                                        Visibility="{Binding DataContext.IsP1Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                    <DataGridTextColumn Header="P2" Binding="{Binding Partials[1]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"
-                                                                        Visibility="{Binding DataContext.IsP2Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                    <DataGridTextColumn Header="P3" Binding="{Binding Partials[2]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"
-                                                                        Visibility="{Binding DataContext.IsP3Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                    <DataGridTextColumn Header="P4" Binding="{Binding Partials[3]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"
-                                                                        Visibility="{Binding DataContext.IsP4Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                </DataGrid.Columns>
-                                            </DataGrid>
-
-                                            <!-- Résumé de Régularité -->
-                                            <Border Grid.Row="1" Background="#1e293b" Padding="12,10" BorderBrush="#334155" BorderThickness="0,1,0,0"
-                                                    Visibility="{Binding IsRegularityVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                <StackPanel>
-                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                                        <ui:SymbolIcon Symbol="Sync" Foreground="Cyan" Margin="0,0,6,0"/>
-                                                        <TextBlock Text="RÉGULARITÉ (σ - Écart-type)" FontSize="11" FontWeight="Bold" Foreground="White" Opacity="0.8"/>
-                                                    </StackPanel>
-                                                    <ItemsControl ItemsSource="{Binding RegularityStats}">
-                                                        <ItemsControl.ItemsPanel>
-                                                            <ItemsPanelTemplate>
-                                                                <WrapPanel Orientation="Horizontal"/>
-                                                            </ItemsPanelTemplate>
-                                                        </ItemsControl.ItemsPanel>
-                                                        <ItemsControl.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <Border Background="{Binding Color}" CornerRadius="4" Padding="10,6" Margin="0,0,8,8" MinWidth="85">
-                                                                    <StackPanel>
-                                                                        <TextBlock Text="{Binding Label}" FontSize="10" Foreground="White" FontWeight="Bold" Opacity="0.9" HorizontalAlignment="Center"/>
-                                                                        <TextBlock Text="{Binding StdDev, StringFormat={}{0:F3}s}" FontSize="13" Foreground="White" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                                                                    </StackPanel>
-                                                                </Border>
-                                                            </DataTemplate>
-                                                        </ItemsControl.ItemTemplate>
-                                                    </ItemsControl>
-                                                </StackPanel>
-                                            </Border>
-                                        </Grid>
-                                    </dock:LayoutAnchorable>
-
-                                </dock:LayoutAnchorablePane>
-
-                                <!-- Session Info Panel -->
-                                <dock:LayoutAnchorablePane DockWidth="280">
-                                    <dock:LayoutAnchorable x:Name="SessionInfoPane" ContentId="SessionInfoPane" Title="Infos Session" CanClose="False" 
-                                                           IsVisibleChanged="Pane_IsVisibleChanged">
-                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                            <StackPanel Margin="16">
-                                                <StackPanel Margin="0,0,0,12">
-                                                    <TextBlock Text="Date :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
-                                                    <TextBlock Text="{Binding CurrentSession.Date, StringFormat='{}{0:yyyy-MM-dd - HH\\h mm}'}" FontSize="13"/>
-                                                </StackPanel>
-
-                                                <StackPanel Margin="0,0,0,12">
-                                                    <TextBlock Text="Circuit :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
-                                                    <ComboBox ItemsSource="{Binding AvailableCircuits}" 
-                                                              SelectedItem="{Binding SelectedCircuit}"
-                                                              DisplayMemberPath="Name"
-                                                              ui:ControlHelper.PlaceholderText="Détection auto..."/>
-                                                </StackPanel>
-
-                                                <StackPanel Margin="0,0,0,12">
-                                                    <TextBlock Text="Évènement :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
-                                                    <TextBox Text="{Binding SessionEvent, UpdateSourceTrigger=PropertyChanged}" ui:ControlHelper.PlaceholderText="Ex: Roulage Club..."/>
-                                                </StackPanel>
-
-                                                <StackPanel Margin="0,0,0,12">
-                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                                        <TextBlock Text="Pilote :" FontWeight="SemiBold" Opacity="0.7" FontSize="11"/>
-                                                        <TextBlock Text="(TODO: Profils)" Foreground="{DynamicResource SystemControlHighlightAccentBrush}" FontSize="9" VerticalAlignment="Bottom" Margin="4,0,0,0" Opacity="0.6"/>
-                                                    </StackPanel>
-                                                    <ComboBox ItemsSource="{Binding Pilots}" Text="{Binding SessionPilot}" IsEditable="True" ui:ControlHelper.PlaceholderText="Choisir ou saisir..."/>
-                                                </StackPanel>
-
-                                                <Separator Margin="0,4,0,12"/>
-
-                                                <!-- Performance Summary inside sidebar -->
-                                                <Grid Margin="0,0,0,12">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <StackPanel Grid.Column="0">
-                                                        <TextBlock Text="Meilleur :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,2"/>
-                                                        <TextBlock Text="{Binding BestLapTime}" FontSize="15" FontWeight="Bold" Foreground="#007acc"/>
-                                                    </StackPanel>
-                                                    <StackPanel Grid.Column="1">
-                                                        <TextBlock Text="Idéal :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,2"/>
-                                                        <TextBlock Text="{Binding IdealLapTime}" FontSize="15" FontWeight="SemiBold" Opacity="0.9"/>
-                                                    </StackPanel>
-                                                </Grid>
-
-                                                <Separator Margin="0,4,0,12"/>
-
-                                                <StackPanel Margin="0,0,0,12">
-                                                    <TextBlock Text="Véhicule :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
-                                                    <TextBox Text="{Binding SessionVehicle, UpdateSourceTrigger=PropertyChanged}" ui:ControlHelper.PlaceholderText="Modèle..."/>
-                                                </StackPanel>
-
-                                                <Grid Margin="0,0,0,12">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="3*"/>
-                                                        <ColumnDefinition Width="2*"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                                        <TextBlock Text="Piste :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
-                                                        <ComboBox ItemsSource="{Binding TrackConditionsList}" SelectedValue="{Binding SessionTrackConditions}"/>
-                                                    </StackPanel>
-                                                    <StackPanel Grid.Column="1">
-                                                        <TextBlock Text="Temp. (°C) :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
-                                                        <ui:NumberBox Value="{Binding SessionTrackTemperature}" SpinButtonPlacementMode="Inline" SmallChange="1"/>
-                                                    </StackPanel>
-                                                </Grid>
-
-                                                <StackPanel Margin="0,0,0,12">
-                                                    <TextBlock Text="Pneumatiques :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
-                                                    <TextBox Text="{Binding SessionTires, UpdateSourceTrigger=PropertyChanged}" ui:ControlHelper.PlaceholderText="Modèle, gomme..."/>
-                                                </StackPanel>
-
-                                                <StackPanel Margin="0,0,0,12">
-                                                    <TextBlock Text="Notes :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
-                                                    <TextBox Text="{Binding SessionNotes, UpdateSourceTrigger=PropertyChanged}" 
-                                                              TextWrapping="Wrap" AcceptsReturn="True" MinHeight="80" MaxHeight="150" VerticalContentAlignment="Top"
-                                                              ui:ControlHelper.PlaceholderText="Pressions, réglages..."/>
-                                                </StackPanel>
-                                            </StackPanel>
-                                        </ScrollViewer>
-                                    </dock:LayoutAnchorable>
-                                </dock:LayoutAnchorablePane>
-
-                                <!-- Map Panel -->
+                        <dock:LayoutPanel Orientation="Vertical">
+                            <dock:LayoutPanel Orientation="Horizontal">
                                 <dock:LayoutAnchorablePane>
-                                    <dock:LayoutAnchorable x:Name="MapPane" ContentId="MapPane" Title="Carte &amp; Tracé" CanClose="False" 
-                                                           IsVisibleChanged="Pane_IsVisibleChanged">
-                                        <Grid Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" ClipToBounds="True">
-                                            <Image Source="https://www.google.com/maps/vt/pb=!1m4!1m3!1i15!2i16447!3i11808!2m3!1e0!2sm!3i637156903!3m8!2sfr!3sp!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!1sfsy:1" Stretch="UniformToFill" Opacity="0.5"/>
-                                            <Border Background="#AA000000" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="10" CornerRadius="4" Padding="8,4">
-                                                <TextBlock Text="{Binding CircuitName, StringFormat='Circuit : {0}'}" Foreground="White" FontSize="12"/>
-                                            </Border>
-                                            <Polyline Points="{Binding TrajectoryPoints}" Stroke="Cyan" StrokeThickness="3" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform" Margin="20"/>
-                                        </Grid>
-                                    </dock:LayoutAnchorable>
-                                </dock:LayoutAnchorablePane>
-                            </dock:LayoutPanel>
-
-                            <!-- Telemetry Panel (Bottom) -->
-                            <dock:LayoutAnchorablePane>
-                                <dock:LayoutAnchorable x:Name="ChartsPane" ContentId="ChartsPane" Title="Graphiques Télémétriques" CanClose="False" 
+                                    <dock:LayoutAnchorable x:Name="LapsPane" ContentId="LapsPane" Title="Tableau des Tours" CanClose="False" 
                                                        IsVisibleChanged="Pane_IsVisibleChanged">
-                                    <Grid Background="#0f172a">
+                                    <Grid>
                                         <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="*"/>
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
+                                        
+                                        <DataGrid Grid.Row="0" ItemsSource="{Binding Laps}" 
+                                                  SelectedItem="{Binding SelectedLap}"
+                                                  SelectionMode="Extended"
+                                                  SelectionChanged="DataGrid_SelectionChanged"
+                                                  AutoGenerateColumns="False" 
+                                                  IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
+                                                  CanUserReorderColumns="False" CanUserResizeRows="False"
+                                                  Background="Transparent" BorderThickness="0"
+                                                  RowStyle="{StaticResource BestLapRowStyle}"
+                                                  HorizontalGridLinesBrush="#333" GridLinesVisibility="Horizontal"
+                                                  HeadersVisibility="Column" RowBackground="Transparent">
+                                            <DataGrid.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="Définir comme RÉFÉRENCE" Command="{Binding SetReferenceCommand}"/>
+                                                    <MenuItem Header="Effacer la référence" Command="{Binding ClearReferenceCommand}"/>
+                                                </ContextMenu>
+                                            </DataGrid.ContextMenu>
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Tour" Binding="{Binding Number}" Width="50" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
+                                                <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="80"/>
+                                                <DataGridTextColumn Header="Cumulé" Binding="{Binding CumulativeTime}" Width="90" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
+                                                <DataGridTextColumn Header="Temps" Binding="{Binding LapTime}" Width="90" CellStyle="{StaticResource CenterAlignedCellStyle}">
+                                                    <DataGridTextColumn.ElementStyle>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="FontWeight" Value="Bold"/>
+                                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                                        </Style>
+                                                    </DataGridTextColumn.ElementStyle>
+                                                </DataGridTextColumn>
+                                                <DataGridTextColumn Header="Vmax" Binding="{Binding MaxSpeed, StringFormat={}{0:F0} km/h}" Width="85" CellStyle="{StaticResource MaxHighlightCellStyle}"/>
+                                                <DataGridTextColumn Header="Vmin" Binding="{Binding MinSpeed, StringFormat={}{0:F0} km/h}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
+                                                <DataGridTextColumn Header="Gauch" Binding="{Binding MaxLeanLeft, StringFormat={}{0:F0}°}" Width="65" CellStyle="{StaticResource MaxHighlightCellStyle}"/>
+                                                <DataGridTextColumn Header="Droit" Binding="{Binding MaxLeanRight, StringFormat={}{0:F0}°}" Width="65" CellStyle="{StaticResource MaxHighlightCellStyle}"/>
+                                                <DataGridTextColumn Header="Accel" Binding="{Binding MaxAccel, StringFormat={}{0:F2} g}" Width="65" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
+                                                <DataGridTextColumn Header="Decel" Binding="{Binding MaxDecel, StringFormat={}{0:F2} g}" Width="65" CellStyle="{StaticResource CenterAlignedCellStyle}"/>
+                                                <DataGridTextColumn Header="P1" Binding="{Binding Partials[0]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}" 
+                                                                    Visibility="{Binding DataContext.IsP1Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                <DataGridTextColumn Header="P2" Binding="{Binding Partials[1]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"
+                                                                    Visibility="{Binding DataContext.IsP2Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                <DataGridTextColumn Header="P3" Binding="{Binding Partials[2]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"
+                                                                    Visibility="{Binding DataContext.IsP3Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                <DataGridTextColumn Header="P4" Binding="{Binding Partials[3]}" Width="80" CellStyle="{StaticResource CenterAlignedCellStyle}"
+                                                                    Visibility="{Binding DataContext.IsP4Visible, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
 
-                                        <!-- Toggles and Dynamic Legend (Compact Top Row) -->
-                                        <Grid Grid.Row="0" Margin="10,5">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            
-                                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                                <CheckBox Content="Vitesse" IsChecked="{Binding ShowSpeed}" Foreground="Cyan" Margin="0,0,15,0"/>
-                                                <CheckBox Content="Angle G" IsChecked="{Binding ShowAngleLeft}" Foreground="White" Margin="0,0,10,0"/>
-                                                <CheckBox Content="Angle D" IsChecked="{Binding ShowAngleRight}" Foreground="White" Margin="0,0,15,0"/>
-                                                <CheckBox Content="Accel" IsChecked="{Binding ShowAccel}" Foreground="White" Margin="0,0,10,0"/>
-                                                <CheckBox Content="Deccel" IsChecked="{Binding ShowDecel}" Foreground="White" Margin="0,0,10,0"/>
-                                                <Rectangle Width="1" Height="16" Fill="#444" Margin="0,0,15,0"/>
-                                                <CheckBox Content="RÉFÉRENCE" IsChecked="{Binding ShowReference}" Foreground="White" FontWeight="Bold" Margin="0,0,15,0"/>
-                                                <Rectangle Width="1" Height="16" Fill="#444" Margin="0,0,15,0"/>
-                                            </StackPanel>
-
-                                            <ItemsControl Grid.Column="1" ItemsSource="{Binding LegendEntries}">
-                                                <ItemsControl.ItemsPanel>
-                                                    <ItemsPanelTemplate>
-                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center"/>
-                                                    </ItemsPanelTemplate>
-                                                </ItemsControl.ItemsPanel>
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Border Background="#1e293b" CornerRadius="4" Padding="6,2" Margin="0,0,8,0" BorderBrush="#334155" BorderThickness="1">
-                                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                                <Border Width="8" Height="8" CornerRadius="4" Background="{Binding Color}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                                                <TextBlock Text="{Binding Label}" Foreground="White" FontSize="10" FontWeight="Bold" Margin="0,0,4,0"/>
-                                                                <TextBlock Text="{Binding LapTime}" Foreground="#94a3b8" FontSize="9"/>
-                                                            </StackPanel>
-                                                        </Border>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </Grid>
-
-                                        <!-- Main Combined Chart (Maximized Space) -->
-                                        <Border Grid.Row="1" BorderBrush="#334155" BorderThickness="1" CornerRadius="4" Margin="10,0,10,10">
-                                            <lvc:CartesianChart Series="{Binding TelemetrySeries}" 
-                                                               XAxes="{Binding XAxes}" 
-                                                               YAxes="{Binding YAxes}" 
-                                                               Sections="{Binding Sections}"
-                                                               LegendPosition="Hidden"
-                                                               TooltipPosition="Hidden"
-                                                               MouseMove="Chart_PointerMove"
-                                                               Margin="0"/>
-                                        </Border>
-
-                                        <!-- Value Display (Below Chart) -->
-                                        <Border Grid.Row="2" Background="#1a1a1a" BorderBrush="#333" BorderThickness="0,1,0,0" Padding="15,8">
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                                <!-- Position Indicator -->
-                                                <StackPanel VerticalAlignment="Center" Margin="0,0,25,0" Width="110">
-                                                    <TextBlock Text="{Binding XAxisValueLabel}" FontSize="10" FontWeight="Bold" Foreground="#64748b" Margin="0,0,0,2"/>
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="{Binding CurrentX, StringFormat={}{0:F2}}" FontSize="18" FontWeight="Bold" Foreground="White"/>
-                                                        <TextBlock Text="{Binding XAxisUnit}" FontSize="12" Foreground="#64748b" VerticalAlignment="Bottom" Margin="4,0,0,3"/>
-                                                    </StackPanel>
+                                        <!-- Résumé de Régularité -->
+                                        <Border Grid.Row="1" Background="#1e293b" Padding="12,10" BorderBrush="#334155" BorderThickness="0,1,0,0"
+                                                Visibility="{Binding IsRegularityVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <ui:SymbolIcon Symbol="Sync" Foreground="Cyan" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="RÉGULARITÉ (σ - Écart-type)" FontSize="11" FontWeight="Bold" Foreground="White" Opacity="0.8"/>
                                                 </StackPanel>
-
-                                                <Rectangle Width="1" Height="30" Fill="#333" Margin="0,0,20,0"/>
-
-                                                <!-- Per-Lap Values -->
-                                                <ItemsControl ItemsSource="{Binding CursorLaps}">
+                                                <ItemsControl ItemsSource="{Binding RegularityStats}">
                                                     <ItemsControl.ItemsPanel>
                                                         <ItemsPanelTemplate>
-                                                            <StackPanel Orientation="Horizontal"/>
+                                                            <WrapPanel Orientation="Horizontal"/>
                                                         </ItemsPanelTemplate>
                                                     </ItemsControl.ItemsPanel>
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
-                                                            <StackPanel Orientation="Horizontal" Margin="0,0,25,0" VerticalAlignment="Center">
-                                                                <!-- Lap Name Badge -->
-                                                                <Border Background="{Binding Color}" Width="32" Height="32" CornerRadius="4" Margin="0,0,12,0">
-                                                                    <TextBlock Text="{Binding LapName}" Foreground="Black" FontWeight="Bold" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                                </Border>
-                                                                
-                                                                <!-- Values for this lap -->
-                                                                <StackPanel VerticalAlignment="Center">
-                                                                    <StackPanel Orientation="Horizontal">
-                                                                        <TextBlock Text="{Binding Speed, StringFormat={}{0:F1}}" Foreground="White" FontSize="13" FontWeight="SemiBold" Width="40"/>
-                                                                        <TextBlock Text="km/h" FontSize="9" Foreground="#64748b" VerticalAlignment="Bottom" Margin="2,0,0,2"/>
-                                                                    </StackPanel>
-                                                                    <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
-                                                                        <TextBlock Text="{Binding Angle, StringFormat={}{0:F0}°}" Foreground="#94a3b8" FontSize="11" Width="30"/>
-                                                                        <TextBlock Text=" | " Foreground="#334155" FontSize="11"/>
-                                                                        <TextBlock Text="{Binding Accel, StringFormat={}{0:F2}G}" Foreground="#94a3b8" FontSize="11" Margin="4,0,0,0"/>
-                                                                    </StackPanel>
+                                                            <Border Background="{Binding Color}" CornerRadius="4" Padding="10,6" Margin="0,0,8,8" MinWidth="85">
+                                                                <StackPanel>
+                                                                    <TextBlock Text="{Binding Label}" FontSize="10" Foreground="White" FontWeight="Bold" Opacity="0.9" HorizontalAlignment="Center"/>
+                                                                    <TextBlock Text="{Binding StdDev, StringFormat={}{0:F3}s}" FontSize="13" Foreground="White" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                                                                 </StackPanel>
-                                                            </StackPanel>
+                                                            </Border>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
@@ -614,11 +399,242 @@
                                         </Border>
                                     </Grid>
                                 </dock:LayoutAnchorable>
+
+                            </dock:LayoutAnchorablePane>
+
+                            <!-- Session Info Panel -->
+                            <dock:LayoutAnchorablePane DockWidth="280">
+                                <dock:LayoutAnchorable x:Name="SessionInfoPane" ContentId="SessionInfoPane" Title="Infos Session" CanClose="False" 
+                                                       IsVisibleChanged="Pane_IsVisibleChanged">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <StackPanel Margin="16">
+                                            <StackPanel Margin="0,0,0,12">
+                                                <TextBlock Text="Date :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
+                                                <TextBlock Text="{Binding CurrentSession.Date, StringFormat='{}{0:yyyy-MM-dd - HH\\h mm}'}" FontSize="13"/>
+                                            </StackPanel>
+
+                                            <StackPanel Margin="0,0,0,12">
+                                                <TextBlock Text="Circuit :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
+                                                <ComboBox ItemsSource="{Binding AvailableCircuits}" 
+                                                          SelectedItem="{Binding SelectedCircuit}"
+                                                          DisplayMemberPath="Name"
+                                                          ui:ControlHelper.PlaceholderText="Détection auto..."/>
+                                            </StackPanel>
+
+                                            <StackPanel Margin="0,0,0,12">
+                                                <TextBlock Text="Évènement :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
+                                                <TextBox Text="{Binding SessionEvent, UpdateSourceTrigger=PropertyChanged}" ui:ControlHelper.PlaceholderText="Ex: Roulage Club..."/>
+                                            </StackPanel>
+
+                                            <StackPanel Margin="0,0,0,12">
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                    <TextBlock Text="Pilote :" FontWeight="SemiBold" Opacity="0.7" FontSize="11"/>
+                                                    <TextBlock Text="(TODO: Profils)" Foreground="{DynamicResource SystemControlHighlightAccentBrush}" FontSize="9" VerticalAlignment="Bottom" Margin="4,0,0,0" Opacity="0.6"/>
+                                                </StackPanel>
+                                                <ComboBox ItemsSource="{Binding Pilots}" Text="{Binding SessionPilot}" IsEditable="True" ui:ControlHelper.PlaceholderText="Choisir ou saisir..."/>
+                                            </StackPanel>
+
+                                            <Separator Margin="0,4,0,12"/>
+
+                                            <!-- Performance Summary inside sidebar -->
+                                            <Grid Margin="0,0,0,12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="Meilleur :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,2"/>
+                                                    <TextBlock Text="{Binding BestLapTime}" FontSize="15" FontWeight="Bold" Foreground="#007acc"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Text="Idéal :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,2"/>
+                                                    <TextBlock Text="{Binding IdealLapTime}" FontSize="15" FontWeight="SemiBold" Opacity="0.9"/>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <Separator Margin="0,4,0,12"/>
+
+                                            <StackPanel Margin="0,0,0,12">
+                                                <TextBlock Text="Véhicule :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
+                                                <TextBox Text="{Binding SessionVehicle, UpdateSourceTrigger=PropertyChanged}" ui:ControlHelper.PlaceholderText="Modèle..."/>
+                                            </StackPanel>
+
+                                            <Grid Margin="0,0,0,12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="3*"/>
+                                                    <ColumnDefinition Width="2*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                                    <TextBlock Text="Piste :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
+                                                    <ComboBox ItemsSource="{Binding TrackConditionsList}" SelectedValue="{Binding SessionTrackConditions}"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Text="Temp. (°C) :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
+                                                    <ui:NumberBox Value="{Binding SessionTrackTemperature}" SpinButtonPlacementMode="Inline" SmallChange="1"/>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <StackPanel Margin="0,0,0,12">
+                                                <TextBlock Text="Pneumatiques :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
+                                                <TextBox Text="{Binding SessionTires, UpdateSourceTrigger=PropertyChanged}" ui:ControlHelper.PlaceholderText="Modèle, gomme..."/>
+                                            </StackPanel>
+
+                                            <StackPanel Margin="0,0,0,12">
+                                                <TextBlock Text="Notes :" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
+                                                <TextBox Text="{Binding SessionNotes, UpdateSourceTrigger=PropertyChanged}" 
+                                                          TextWrapping="Wrap" AcceptsReturn="True" MinHeight="80" MaxHeight="150" VerticalContentAlignment="Top"
+                                                          ui:ControlHelper.PlaceholderText="Pressions, réglages..."/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </dock:LayoutAnchorable>
                             </dock:LayoutAnchorablePane>
                         </dock:LayoutPanel>
+
+                        <!-- Map Panel -->
+                        <dock:LayoutAnchorablePane>
+                            <dock:LayoutAnchorable x:Name="MapPane" ContentId="MapPane" Title="Carte &amp; Tracé" CanClose="False" 
+                                                   IsVisibleChanged="Pane_IsVisibleChanged">
+                                <Grid Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" ClipToBounds="True">
+                                    <Image Source="https://www.google.com/maps/vt/pb=!1m4!1m3!1i15!2i16447!3i11808!2m3!1e0!2sm!3i637156903!3m8!2sfr!3sp!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!1sfsy:1" Stretch="UniformToFill" Opacity="0.5"/>
+                                    <Border Background="#AA000000" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="10" CornerRadius="4" Padding="8,4">
+                                        <TextBlock Text="{Binding CircuitName, StringFormat='Circuit : {0}'}" Foreground="White" FontSize="12"/>
+                                    </Border>
+                                    <Polyline Points="{Binding TrajectoryPoints}" Stroke="Cyan" StrokeThickness="3" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform" Margin="20"/>
+                                </Grid>
+                            </dock:LayoutAnchorable>
+                        </dock:LayoutAnchorablePane>
+
+                        <!-- Telemetry Panel (Bottom) -->
+                        <dock:LayoutAnchorablePane>
+                            <dock:LayoutAnchorable x:Name="ChartsPane" ContentId="ChartsPane" Title="Graphiques Télémétriques" CanClose="False" 
+                                                   IsVisibleChanged="Pane_IsVisibleChanged">
+                                <Grid Background="#0f172a">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Toggles and Dynamic Legend (Compact Top Row) -->
+                                    <Grid Grid.Row="0" Margin="10,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <CheckBox Content="Vitesse" IsChecked="{Binding ShowSpeed}" Foreground="Cyan" Margin="0,0,15,0"/>
+                                            <CheckBox Content="Angle G" IsChecked="{Binding ShowAngleLeft}" Foreground="White" Margin="0,0,10,0"/>
+                                            <CheckBox Content="Angle D" IsChecked="{Binding ShowAngleRight}" Foreground="White" Margin="0,0,15,0"/>
+                                            <CheckBox Content="Accel" IsChecked="{Binding ShowAccel}" Foreground="White" Margin="0,0,10,0"/>
+                                            <CheckBox Content="Deccel" IsChecked="{Binding ShowDecel}" Foreground="White" Margin="0,0,10,0"/>
+                                            <CheckBox Content="DELTA" IsChecked="{Binding ShowDeltaTime}" Foreground="#f59e0b" FontWeight="Bold" Margin="0,0,10,0"/>
+                                            <Rectangle Width="1" Height="16" Fill="#444" Margin="0,0,15,0"/>
+                                            <CheckBox Content="RÉFÉRENCE" IsChecked="{Binding ShowReference}" Foreground="White" FontWeight="Bold" Margin="0,0,15,0"/>
+                                            <Rectangle Width="1" Height="16" Fill="#444" Margin="0,0,15,0"/>
+                                        </StackPanel>
+
+                                        <ItemsControl Grid.Column="1" ItemsSource="{Binding LegendEntries}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="#1e293b" CornerRadius="4" Padding="6,2" Margin="0,0,8,0" BorderBrush="#334155" BorderThickness="1">
+                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <Border Width="8" Height="8" CornerRadius="4" Background="{Binding Color}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="{Binding Label}" Foreground="White" FontSize="10" FontWeight="Bold" Margin="0,0,4,0"/>
+                                                            <TextBlock Text="{Binding LapTime}" Foreground="#94a3b8" FontSize="9"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
+
+                                    <!-- Main Chart (Full Space) -->
+                                    <Border Grid.Row="1" BorderBrush="#334155" BorderThickness="1" CornerRadius="4" Margin="10,0,10,10">
+                                         <lvc:CartesianChart Series="{Binding TelemetrySeries}" 
+                                                             XAxes="{Binding XAxes}" 
+                                                             YAxes="{Binding YAxes}" 
+                                                             Sections="{Binding Sections}"
+                                                             LegendPosition="Hidden"
+                                                             TooltipPosition="Hidden"
+                                                             MouseMove="Chart_PointerMove"
+                                                             Margin="0"/>
+                                     </Border>
+
+                                    <!-- Value Display (Below Chart) -->
+                                    <Border Grid.Row="2" Background="#1a1a1a" BorderBrush="#333" BorderThickness="0,1,0,0" Padding="15,8">
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                            <!-- Position Indicator -->
+                                            <StackPanel VerticalAlignment="Center" Margin="0,0,25,0" Width="110">
+                                                <TextBlock Text="{Binding XAxisValueLabel}" FontSize="10" FontWeight="Bold" Foreground="#64748b" Margin="0,0,0,2"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding CurrentX, StringFormat={}{0:F2}}" FontSize="18" FontWeight="Bold" Foreground="White"/>
+                                                    <TextBlock Text="{Binding XAxisUnit}" FontSize="12" Foreground="#64748b" VerticalAlignment="Bottom" Margin="4,0,0,3"/>
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <Rectangle Width="1" Height="30" Fill="#333" Margin="0,0,20,0"/>
+                                             
+                                             <!-- Delta Indicator -->
+                                             <StackPanel VerticalAlignment="Center" Margin="0,0,25,0" Width="100" 
+                                                         Visibility="{Binding ShowDeltaTime, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                 <TextBlock Text="DELTA" FontSize="10" FontWeight="Bold" Foreground="#64748b" Margin="0,0,0,2"/>
+                                                 <StackPanel Orientation="Horizontal">
+                                                     <TextBlock Text="{Binding CurrentDelta, StringFormat={}{0:+0.00;-0.00;0.00}}" 
+                                                                FontSize="18" FontWeight="Bold" Foreground="#f59e0b"/>
+                                                     <TextBlock Text="s" FontSize="12" Foreground="#64748b" VerticalAlignment="Bottom" Margin="4,0,0,3"/>
+                                                 </StackPanel>
+                                             </StackPanel>
+
+                                             <Rectangle Width="1" Height="30" Fill="#333" Margin="0,0,20,0"
+                                                        Visibility="{Binding ShowDeltaTime, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                                            <!-- Per-Lap Values -->
+                                            <ItemsControl ItemsSource="{Binding CursorLaps}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,0,25,0" VerticalAlignment="Center">
+                                                            <!-- Lap Name Badge -->
+                                                            <Border Background="{Binding Color}" Width="32" Height="32" CornerRadius="4" Margin="0,0,12,0">
+                                                                <TextBlock Text="{Binding LapName}" Foreground="Black" FontWeight="Bold" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            
+                                                            <!-- Values for this lap -->
+                                                            <StackPanel VerticalAlignment="Center">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <TextBlock Text="{Binding Speed, StringFormat={}{0:F1}}" Foreground="White" FontSize="13" FontWeight="SemiBold" Width="40"/>
+                                                                    <TextBlock Text="km/h" FontSize="9" Foreground="#64748b" VerticalAlignment="Bottom" Margin="2,0,0,2"/>
+                                                                </StackPanel>
+                                                                <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                                                                    <TextBlock Text="{Binding Angle, StringFormat={}{0:F0}°}" Foreground="#94a3b8" FontSize="11" Width="30"/>
+                                                                    <TextBlock Text=" | " Foreground="#334155" FontSize="11"/>
+                                                                    <TextBlock Text="{Binding Accel, StringFormat={}{0:F2}G}" Foreground="#94a3b8" FontSize="11" Margin="4,0,0,0"/>
+                                                                </StackPanel>
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </dock:LayoutAnchorable>
+                        </dock:LayoutAnchorablePane>
+                    </dock:LayoutPanel>
                     </dock:LayoutPanel>
                 </dock:LayoutRoot>
             </dock:DockingManager>
-            </Grid>
         </Grid>
+    </Grid>
 </Window>

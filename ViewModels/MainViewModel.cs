@@ -145,6 +145,10 @@ namespace Analyzer.ViewModels
             new SmoothingOption { Name = "Très fort", Value = 8 }
         };
 
+        private bool _showDeltaTime;
+        public bool ShowDeltaTime { get => _showDeltaTime; set { if (SetProperty(ref _showDeltaTime, value)) UpdateTelemetryCharts(); } }
+
+
         // Comparison Thickness Range (Fast/Slow)
         private float _compFastThickness = 1.5f;
         public float CompFastThickness { get => _compFastThickness; set { if (SetProperty(ref _compFastThickness, value)) UpdateTelemetryCharts(); } }
@@ -174,6 +178,9 @@ namespace Analyzer.ViewModels
         
         private double _currentSpeed;
         public double CurrentSpeed { get => _currentSpeed; set => SetProperty(ref _currentSpeed, value); }
+        
+        private double _currentDelta;
+        public double CurrentDelta { get => _currentDelta; set => SetProperty(ref _currentDelta, value); }
         
         private double _currentAngle;
         public double CurrentAngle { get => _currentAngle; set => SetProperty(ref _currentAngle, value); }
@@ -437,6 +444,8 @@ namespace Analyzer.ViewModels
             _speedSmoothing = _settings.SpeedSmoothing;
             _angleSmoothing = _settings.AngleSmoothing;
             _accelSmoothing = _settings.AccelSmoothing;
+
+            _showDeltaTime = false; // Par défaut éteint
 
             _isLapsVisible = _settings.IsLapsVisible;
             _isSessionInfoVisible = _settings.IsSessionInfoVisible;
@@ -1276,27 +1285,96 @@ namespace Analyzer.ViewModels
             if (ShowSpeed) activeSeries.Add("Vitesse");
             if (IsAnyAngleVisible) activeSeries.Add("Angle");
             if (IsAnyAccelVisible) activeSeries.Add("G");
-            YAxes[0].Name = string.Join(" / ", activeSeries);
-
-            if (hasGlobalData && maxY > minY)
+            
+            if (ShowDeltaTime)
             {
-                double range = maxY - minY;
-                double stepY = range / 4;
-                var separators = new List<double>();
-                for (int i = 0; i <= 4; i++)
+                // MODE DELTA TIME (Superposition sur l'axe de droite)
+                UpdateDeltaView(seriesList);
+                
+                YAxes[1].IsVisible = true;
+                YAxes[1].Name = "Δ Time (s)";
+                YAxes[1].Labeler = value => value >= 0 ? $"+{value:F2}s" : $"{value:F2}s";
+                
+                // Calcul des bornes du Delta pour une graduation propre
+                var deltaSeries = seriesList.OfType<LineSeries<ObservablePoint>>().FirstOrDefault(s => s.Name != null && s.Name.StartsWith("Delta"));
+                if (deltaSeries != null && deltaSeries.Values != null && deltaSeries.Values.Any())
                 {
-                    double val = minY + (i * stepY);
-                    separators.Add(val);
-                    sectionsList.Add(new RectangularSection
-                    {
-                        Yi = val,
-                        Yj = val,
-                        Stroke = new SolidColorPaint(SKColors.White.WithAlpha(15), 0.5f)
-                    });
+                    double minD = deltaSeries.Values.Min(p => p.Y ?? 0);
+                    double maxD = deltaSeries.Values.Max(p => p.Y ?? 0);
+                    
+                    // On arrondit pour avoir des graduations propres (ex: 0.5s)
+                    double range = maxD - minD;
+                    if (range < 0.1) range = 0.1; // Minimum de 0.1s de plage
+                    
+                    double margin = range * 0.1;
+                    YAxes[1].MinLimit = minD - margin;
+                    YAxes[1].MaxLimit = maxD + margin;
                 }
-                YAxes[0].CustomSeparators = separators.ToArray();
-                YAxes[0].MinLimit = minY;
-                YAxes[0].MaxLimit = maxY;
+                else
+                {
+                    YAxes[1].MinLimit = null;
+                    YAxes[1].MaxLimit = null;
+                }
+            }
+            else
+            {
+                YAxes[1].Name = "Angle (°) / G";
+                YAxes[1].Labeler = value => Math.Round(value, 1).ToString();
+                YAxes[1].MinLimit = null;
+                YAxes[1].MaxLimit = null;
+                YAxes[1].IsVisible = IsAnyAngleVisible || IsAnyAccelVisible;
+            }
+
+            // MODE TÉLÉMÉTRIE NORMAL (Axe de gauche)
+            YAxes[0].Name = "Vitesse (km/h)";
+            YAxes[0].Labeler = value => Math.Round(value).ToString();
+            
+            // Quadrillage horizontal dynamique (Vitesse)
+            if (seriesList.OfType<LineSeries<ObservablePoint>>().Any(ls => ls.ScalesYAt == 0))
+            {
+                double minY_val = double.MaxValue;
+                double maxY_val = double.MinValue;
+                bool hasLeftData = false;
+
+                foreach (var s in seriesList.OfType<LineSeries<ObservablePoint>>().Where(ls => ls.ScalesYAt == 0))
+                {
+                    if (s.Values == null) continue;
+                    foreach (var p in s.Values)
+                    {
+                        if (p.Y < minY_val) minY_val = p.Y.Value;
+                        if (p.Y > maxY_val) maxY_val = p.Y.Value;
+                        hasLeftData = true;
+                    }
+                }
+
+                if (hasLeftData && maxY_val > minY_val)
+                {
+                    minY_val = Math.Max(0, Math.Floor(minY_val / 10) * 10);
+                    maxY_val = Math.Ceiling(maxY_val / 10) * 10;
+                    double range = maxY_val - minY_val;
+                    double stepY = range / 4;
+                    var separators = new List<double>();
+                    for (int i = 0; i <= 4; i++)
+                    {
+                        double val = minY_val + (i * stepY);
+                        separators.Add(val);
+                        sectionsList.Add(new RectangularSection
+                        {
+                            Yi = val,
+                            Yj = val,
+                            Stroke = new SolidColorPaint(SKColors.White.WithAlpha(15), 0.5f)
+                        });
+                    }
+                    YAxes[0].CustomSeparators = separators.ToArray();
+                    YAxes[0].MinLimit = minY_val;
+                    YAxes[0].MaxLimit = maxY_val;
+                }
+            }
+            else
+            {
+                YAxes[0].MinLimit = null;
+                YAxes[0].MaxLimit = null;
+                YAxes[0].CustomSeparators = null;
             }
 
             OnPropertyChanged(nameof(XAxes));
@@ -1308,7 +1386,7 @@ namespace Analyzer.ViewModels
             {
                 lapRange = (_currentLapPoints.Last().Distance - _currentLapPoints.First().Distance);
             }
-            else
+            else if (SelectedLap != null)
             {
                 lapRange = SelectedLap.LapTimeMs / 1000.0;
             }
@@ -1343,6 +1421,89 @@ namespace Analyzer.ViewModels
 
             // Calculer les statistiques de régularité
             UpdateRegularityStats();
+            
+            TelemetrySeries = seriesList.ToArray();
+        }
+
+        private void UpdateDeltaView(List<ISeries> seriesList)
+        {
+            // Trouver les deux tours à comparer
+            var selectedLaps = ComparisonLaps;
+            LapData? lap1 = null;
+            LapData? lap2 = null;
+
+            if (ShowReference && ReferenceLap != null)
+            {
+                lap1 = ReferenceLap;
+                if (selectedLaps.Count == 1) lap2 = selectedLaps[0];
+                else if (selectedLaps.Count > 1) lap2 = selectedLaps.FirstOrDefault(l => l != ReferenceLap);
+            }
+            else if (selectedLaps.Count == 2)
+            {
+                lap1 = selectedLaps[0];
+                lap2 = selectedLaps[1];
+            }
+
+            if (lap1 == null || lap2 == null) return;
+
+            var points1 = lap1.TelemetryPoints ?? GetLapPoints(lap1);
+            var points2 = lap2.TelemetryPoints ?? GetLapPoints(lap2);
+
+            if (points1 == null || points2 == null || points1.Count < 2 || points2.Count < 2) return;
+
+            double dist1 = points1.Last().Distance - points1[0].Distance;
+            double dist2 = points2.Last().Distance - points2[0].Distance;
+            double maxDist = Math.Min(dist1, dist2);
+
+            var deltaPoints = new List<ObservablePoint>();
+            for (double d = 0; d <= maxDist; d += 5.0)
+            {
+                double t1 = GetTimeAtDistance(points1, d);
+                double t2 = GetTimeAtDistance(points2, d);
+                deltaPoints.Add(new ObservablePoint(d, t2 - t1));
+            }
+
+            seriesList.Add(new LineSeries<ObservablePoint>
+            {
+                Values = deltaPoints,
+                Name = $"Delta T{lap2.Number} vs T{lap1.Number}",
+                Stroke = new SolidColorPaint(SKColor.Parse("#f59e0b"), 3),
+                Fill = new SolidColorPaint(SKColor.Parse("#f59e0b").WithAlpha(30)),
+                GeometrySize = 0,
+                LineSmoothness = 0.5,
+                ScalesYAt = 1 // Axe de droite
+            });
+        }
+
+        private List<TelemetryPoint> GetLapPoints(LapData lap)
+        {
+            if (lap == null) return new List<TelemetryPoint>();
+            return CurrentSession!.AllPoints
+                .Where(p => p.Time >= lap.StartTimeMs && p.Time <= lap.StartTimeMs + lap.LapTimeMs)
+                .OrderBy(p => p.Time)
+                .ToList();
+        }
+
+        private double GetTimeAtDistance(List<TelemetryPoint> points, double relativeDist)
+        {
+            if (points.Count < 2) return 0;
+            double startDist = points[0].Distance;
+            double startTime = points[0].Time;
+
+            for (int i = 0; i < points.Count - 1; i++)
+            {
+                double d1 = points[i].Distance - startDist;
+                double d2 = points[i+1].Distance - startDist;
+
+                if (relativeDist >= d1 && relativeDist <= d2)
+                {
+                    double distRange = d2 - d1;
+                    if (distRange <= 0) return (points[i].Time - startTime) / 1000.0;
+                    double fraction = (relativeDist - d1) / distRange;
+                    return (points[i].Time - startTime + (points[i+1].Time - points[i].Time) * fraction) / 1000.0;
+                }
+            }
+            return (points.Last().Time - startTime) / 1000.0;
         }
 
         public void UpdateCursor(double timeOrDist, bool force = false)
@@ -1419,6 +1580,7 @@ namespace Analyzer.ViewModels
                 if (p != null)
                 {
                     string color = lap == ReferenceLap ? RefColor : (lap == SelectedLap ? SpeedColor : "#6366f1");
+                    
                     var legend = LegendEntries.FirstOrDefault(le => le.Label.Contains(lap.LapTime));
                     if (legend != null && legend.Color != null && lap != SelectedLap && lap != ReferenceLap) color = legend.Color;
 
@@ -1446,6 +1608,50 @@ namespace Analyzer.ViewModels
                 }
             }
             while (CursorLaps.Count > index) CursorLaps.RemoveAt(CursorLaps.Count - 1);
+
+            // 3. Mettre à jour le Delta en temps réel (si activé)
+            if (useDistance && ShowDeltaTime)
+            {
+                var selectedLaps = ComparisonLaps;
+                LapData? lap1 = null;
+                LapData? lap2 = null;
+
+                if (ShowReference && ReferenceLap != null)
+                {
+                    lap1 = ReferenceLap;
+                    if (selectedLaps.Count == 1) lap2 = selectedLaps[0];
+                    else if (selectedLaps.Count > 1) lap2 = selectedLaps.FirstOrDefault(l => l != ReferenceLap);
+                }
+                else if (selectedLaps.Count == 2)
+                {
+                    lap1 = selectedLaps[0];
+                    lap2 = selectedLaps[1];
+                }
+
+                if (lap1 != null && lap2 != null)
+                {
+                    var pts1 = lap1.TelemetryPoints ?? GetLapPoints(lap1);
+                    var pts2 = lap2.TelemetryPoints ?? GetLapPoints(lap2);
+
+                    if (pts1 != null && pts2 != null && pts1.Count > 1 && pts2.Count > 1)
+                    {
+                        double dist1 = pts1.Last().Distance - pts1[0].Distance;
+                        double dist2 = pts2.Last().Distance - pts2[0].Distance;
+                        double maxD = Math.Min(dist1, dist2);
+
+                        if (timeOrDist <= maxD)
+                        {
+                            double t1 = GetTimeAtDistance(pts1, timeOrDist);
+                            double t2 = GetTimeAtDistance(pts2, timeOrDist);
+                            CurrentDelta = t2 - t1;
+                        }
+                        else CurrentDelta = 0;
+                    }
+                    else CurrentDelta = 0;
+                }
+                else CurrentDelta = 0;
+            }
+            else CurrentDelta = 0;
 
             // 3. Mettre à jour la position de la barre rouge
             if (Sections != null && Sections.Length > 0)
