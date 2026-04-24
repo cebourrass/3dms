@@ -31,6 +31,9 @@ namespace Analyzer.ViewModels
 
         private double _accel;
         public double Accel { get => _accel; set => SetProperty(ref _accel, value); }
+
+        private string _lapTime = string.Empty;
+        public string LapTime { get => _lapTime; set => SetProperty(ref _lapTime, value); }
     }
 
     public class LegendEntry : ObservableObject
@@ -1295,6 +1298,14 @@ namespace Analyzer.ViewModels
                 YAxes[1].Name = "Δ Time (s)";
                 YAxes[1].Labeler = value => value >= 0 ? $"+{value:F2}s" : $"{value:F2}s";
                 
+                // Ligne de référence à zéro pour le Delta
+                sectionsList.Add(new RectangularSection
+                {
+                    Yi = 0, Yj = 0,
+                    Stroke = new SolidColorPaint(SKColors.White.WithAlpha(100), 1.5f),
+                    ScalesYAt = 1
+                });
+
                 // Calcul des bornes du Delta pour une graduation propre
                 var deltaSeries = seriesList.OfType<LineSeries<ObservablePoint>>().FirstOrDefault(s => s.Name != null && s.Name.StartsWith("Delta"));
                 if (deltaSeries != null && deltaSeries.Values != null && deltaSeries.Values.Any())
@@ -1425,26 +1436,41 @@ namespace Analyzer.ViewModels
             TelemetrySeries = seriesList.ToArray();
         }
 
-        private void UpdateDeltaView(List<ISeries> seriesList)
+        private void GetDeltaLaps(out LapData? lap1, out LapData? lap2)
         {
-            // Trouver les deux tours à comparer
-            var selectedLaps = ComparisonLaps;
-            LapData? lap1 = null;
-            LapData? lap2 = null;
+            lap1 = null;
+            lap2 = null;
+            var selectedLaps = ComparisonLaps.Where(l => l != null && l.LapTimeMs > 0).ToList();
 
             if (ShowReference && ReferenceLap != null)
             {
                 lap1 = ReferenceLap;
-                if (selectedLaps.Count == 1) lap2 = selectedLaps[0];
-                else if (selectedLaps.Count > 1) lap2 = selectedLaps.FirstOrDefault(l => l != ReferenceLap);
+                // On cherche un tour sélectionné qui n'est pas la référence
+                lap2 = selectedLaps.FirstOrDefault(l => l != ReferenceLap);
+                // Si rien d'autre n'est sélectionné, on compare au tour actif s'il est différent
+                if (lap2 == null && SelectedLap != null && SelectedLap != ReferenceLap) 
+                    lap2 = SelectedLap;
             }
-            else if (selectedLaps.Count == 2)
+            else if (selectedLaps.Count >= 2)
             {
-                lap1 = selectedLaps[0];
-                lap2 = selectedLaps[1];
+                // Sans référence, on prend les deux plus rapides parmi la sélection
+                // Le plus rapide devient la base (lap1), le second devient la cible (lap2)
+                var sorted = selectedLaps.OrderBy(l => l.LapTimeMs).ToList();
+                lap1 = sorted[0];
+                lap2 = sorted[1];
             }
+        }
 
+        private void UpdateDeltaView(List<ISeries> seriesList)
+        {
+            GetDeltaLaps(out var lap1, out var lap2);
             if (lap1 == null || lap2 == null) return;
+
+            // Déterminer la couleur de la courbe Delta basée sur le tour comparé (lap2)
+            string colorHex = "#f59e0b"; // Orange par défaut
+            var entry = LegendEntries.FirstOrDefault(e => e.Label == $"T{lap2.Number}" || e.Label == $"[REF] T{lap2.Number}");
+            if (entry != null) colorHex = entry.Color;
+            else if (lap2 == SelectedLap) colorHex = SpeedColor;
 
             var points1 = lap1.TelemetryPoints ?? GetLapPoints(lap1);
             var points2 = lap2.TelemetryPoints ?? GetLapPoints(lap2);
@@ -1463,12 +1489,13 @@ namespace Analyzer.ViewModels
                 deltaPoints.Add(new ObservablePoint(d, t2 - t1));
             }
 
+            var skColor = SKColor.Parse(colorHex);
             seriesList.Add(new LineSeries<ObservablePoint>
             {
                 Values = deltaPoints,
                 Name = $"Delta T{lap2.Number} vs T{lap1.Number}",
-                Stroke = new SolidColorPaint(SKColor.Parse("#f59e0b"), 3),
-                Fill = new SolidColorPaint(SKColor.Parse("#f59e0b").WithAlpha(30)),
+                Stroke = new SolidColorPaint(skColor, 3),
+                Fill = new SolidColorPaint(skColor.WithAlpha(25)),
                 GeometrySize = 0,
                 LineSmoothness = 0.5,
                 ScalesYAt = 1 // Axe de droite
@@ -1588,6 +1615,7 @@ namespace Analyzer.ViewModels
                     {
                         var item = CursorLaps[index];
                         item.LapName = lap == ReferenceLap ? "RÉF" : $"T{lap.Number}";
+                        item.LapTime = lap.LapTime;
                         item.Color = color;
                         item.Speed = p.Speed;
                         item.Angle = Math.Abs(p.LeanAngle);
@@ -1598,6 +1626,7 @@ namespace Analyzer.ViewModels
                         CursorLaps.Add(new CursorLapValue
                         {
                             LapName = lap == ReferenceLap ? "RÉF" : $"T{lap.Number}",
+                            LapTime = lap.LapTime,
                             Color = color,
                             Speed = p.Speed,
                             Angle = Math.Abs(p.LeanAngle),
@@ -1612,22 +1641,7 @@ namespace Analyzer.ViewModels
             // 3. Mettre à jour le Delta en temps réel (si activé)
             if (useDistance && ShowDeltaTime)
             {
-                var selectedLaps = ComparisonLaps;
-                LapData? lap1 = null;
-                LapData? lap2 = null;
-
-                if (ShowReference && ReferenceLap != null)
-                {
-                    lap1 = ReferenceLap;
-                    if (selectedLaps.Count == 1) lap2 = selectedLaps[0];
-                    else if (selectedLaps.Count > 1) lap2 = selectedLaps.FirstOrDefault(l => l != ReferenceLap);
-                }
-                else if (selectedLaps.Count == 2)
-                {
-                    lap1 = selectedLaps[0];
-                    lap2 = selectedLaps[1];
-                }
-
+                GetDeltaLaps(out var lap1, out var lap2);
                 if (lap1 != null && lap2 != null)
                 {
                     var pts1 = lap1.TelemetryPoints ?? GetLapPoints(lap1);

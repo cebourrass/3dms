@@ -546,8 +546,7 @@
                                                     <Border Background="#1e293b" CornerRadius="4" Padding="6,2" Margin="0,0,8,0" BorderBrush="#334155" BorderThickness="1">
                                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                             <Border Width="8" Height="8" CornerRadius="4" Background="{Binding Color}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                                            <TextBlock Text="{Binding Label}" Foreground="White" FontSize="10" FontWeight="Bold" Margin="0,0,4,0"/>
-                                                            <TextBlock Text="{Binding LapTime}" Foreground="#94a3b8" FontSize="9"/>
+                                                            <TextBlock Text="{Binding Label}" Foreground="White" FontSize="11" FontWeight="Bold"/>
                                                         </StackPanel>
                                                     </Border>
                                                 </DataTemplate>
@@ -612,16 +611,17 @@
                                                             
                                                             <!-- Values for this lap -->
                                                             <StackPanel VerticalAlignment="Center">
-                                                                <StackPanel Orientation="Horizontal">
-                                                                    <TextBlock Text="{Binding Speed, StringFormat={}{0:F1}}" Foreground="White" FontSize="13" FontWeight="SemiBold" Width="40"/>
-                                                                    <TextBlock Text="km/h" FontSize="9" Foreground="#64748b" VerticalAlignment="Bottom" Margin="2,0,0,2"/>
-                                                                </StackPanel>
-                                                                <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
-                                                                    <TextBlock Text="{Binding Angle, StringFormat={}{0:F0}°}" Foreground="#94a3b8" FontSize="11" Width="30"/>
-                                                                    <TextBlock Text=" | " Foreground="#334155" FontSize="11"/>
-                                                                    <TextBlock Text="{Binding Accel, StringFormat={}{0:F2}G}" Foreground="#94a3b8" FontSize="11" Margin="4,0,0,0"/>
-                                                                </StackPanel>
-                                                            </StackPanel>
+                                                                 <TextBlock Text="{Binding LapTime}" Foreground="{Binding Color}" FontSize="10" FontWeight="Bold" Margin="0,0,0,1"/>
+                                                                 <StackPanel Orientation="Horizontal">
+                                                                     <TextBlock Text="{Binding Speed, StringFormat={}{0:F1}}" Foreground="White" FontSize="13" FontWeight="SemiBold" Width="40"/>
+                                                                     <TextBlock Text="km/h" FontSize="9" Foreground="#64748b" VerticalAlignment="Bottom" Margin="2,0,0,2"/>
+                                                                 </StackPanel>
+                                                                 <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                                                                     <TextBlock Text="{Binding Angle, StringFormat={}{0:F0}°}" Foreground="#94a3b8" FontSize="11" Width="30"/>
+                                                                     <TextBlock Text=" | " Foreground="#334155" FontSize="11"/>
+                                                                     <TextBlock Text="{Binding Accel, StringFormat={}{0:F2}G}" Foreground="#94a3b8" FontSize="11" Margin="4,0,0,0"/>
+                                                                 </StackPanel>
+                                                             </StackPanel>
                                                         </StackPanel>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
