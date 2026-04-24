@@ -18,3 +18,6 @@ Liste des fonctionnalités et améliorations planifiées pour l'analyse de pilot
 ## 🎨 UI / UX
 - [ ] **Légende Interactive** : Cliquer sur un tour dans la légende pour le mettre en surbrillance.
 - [ ] **Zoom Synchronisé** : Améliorer le comportement du zoom pour qu'il reste centré sur le curseur.
+
+## 🌐 Hub Team
+- [ ] **Partage en ligne** : Création d'un espace pour partager et comparer ses datas avec les membres de son équipe/club.

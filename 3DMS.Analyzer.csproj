@@ -24,4 +24,10 @@
     <Resource Include="Resources\session.png" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Map\**\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

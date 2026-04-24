@@ -469,7 +469,6 @@ namespace Analyzer.ViewModels
             }
             else
             {
-                LoadDummyLaps();
                 CircuitName = "Aucun circuit";
             }
         }
@@ -544,7 +543,7 @@ namespace Analyzer.ViewModels
         private void LoadAvailableCircuits()
         {
             _availableCircuits.Clear();
-            string mapsRoot = @"C:\dev\3DMS-CED\Map\Circuits";
+            string mapsRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Map", "Circuits");
             if (!Directory.Exists(mapsRoot)) return;
 
             foreach (var countryDir in Directory.GetDirectories(mapsRoot))
@@ -627,10 +626,6 @@ namespace Analyzer.ViewModels
         private void LoadDummyLaps()
         {
             Laps.Clear();
-            Laps.Add(new LapData { Number = 1, Type = "Incomplet", CumulativeTime = "00:32.72", MaxSpeed = 44, MinSpeed = 0, MaxLeanLeft = 3, MaxLeanRight = 17, MaxAccel = 0.17f, MaxDecel = 0.09f, Partials = new[] { "-", "-", "-" } });
-            Laps.Add(new LapData { Number = 2, Type = "Incomplet", CumulativeTime = "00:31.62", MaxSpeed = 37, MinSpeed = 31, MaxLeanLeft = 1, MaxLeanRight = 2, MaxAccel = 0.00f, MaxDecel = 0.11f, Partials = new[] { "-", "-", "-" } });
-            Laps.Add(new LapData { Number = 3, Type = "Complet", CumulativeTime = "03:11.83", LapTime = "02:40.21", MaxSpeed = 184, MinSpeed = 0, MaxLeanLeft = 29, MaxLeanRight = 43, MaxAccel = 0.29f, MaxDecel = 0.22f, Partials = new[] { "01:10.96", "00:44.32", "00:26.33" } });
-            Laps.Add(new LapData { Number = 8, Type = "Complet", CumulativeTime = "12:44.79", LapTime = "01:50.96", MaxSpeed = 206, MinSpeed = 53, MaxLeanLeft = 30, MaxLeanRight = 26, MaxAccel = 0.29f, MaxDecel = 0.31f, Partials = new[] { "00:35.36", "00:34.93", "00:24.17" } });
         }
 
         private string _sessionTitle = "Aucune session";
@@ -1704,29 +1699,6 @@ namespace Analyzer.ViewModels
 
         private void LoadMockupData()
         {
-            var time = Enumerable.Range(0, 100).Select(i => (double)i).ToArray();
-            var speeds = time.Select(t => 180 + 30 * Math.Sin(t * 0.1) + new Random(42).NextDouble() * 5).Select((v, i) => new ObservablePoint(i, v)).ToArray();
-            var angles = time.Select(t => 45 * Math.Cos(t * 0.1)).Select((v, i) => new ObservablePoint(i, v)).ToArray();
-
-            TelemetrySeries = new ISeries[]
-            {
-                new LineSeries<ObservablePoint>
-                {
-                    Values = speeds,
-                    Name = "Vitesse (km/h)",
-                    Fill = null,
-                    Stroke = new SolidColorPaint(SKColors.DodgerBlue) { StrokeThickness = 3 },
-                    GeometrySize = 0
-                },
-                new LineSeries<ObservablePoint>
-                {
-                    Values = angles,
-                    Name = "Angle (°)",
-                    Fill = null,
-                    Stroke = new SolidColorPaint(SKColors.OrangeRed) { StrokeThickness = 3 },
-                    GeometrySize = 0
-                }
-            };
         }
         private void UpdateTrajectoryUI(TrackMap map)
         {
@@ -1773,7 +1745,7 @@ namespace Analyzer.ViewModels
             // Extract circuit name and normalize
             string circuitSearch = NormalizeString(sessionFolderName.Split('-')[0]);
 
-            string mapsRoot = @"C:\dev\3DMS-CED\Map\Circuits";
+            string mapsRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Map", "Circuits");
             if (!System.IO.Directory.Exists(mapsRoot)) return null;
 
             foreach (var countryDir in System.IO.Directory.GetDirectories(mapsRoot))
