@@ -653,6 +653,13 @@ namespace Analyzer.ViewModels
                 }
             }
 
+            if (bestMatch != null && bestMatch.Name.Contains("Alès"))
+            {
+                // Priorité par défaut au sens horaire pour Alès
+                var horaire = _availableCircuits.FirstOrDefault(c => c.Name == "Alès (Sens horaire)");
+                if (horaire != null) return horaire;
+            }
+
             return bestMatch;
         }
 
