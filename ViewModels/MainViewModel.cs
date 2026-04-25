@@ -767,6 +767,7 @@ namespace Analyzer.ViewModels
                 .ToList();
 
             UpdateTelemetryCharts();
+            ShowReference = true;
         }
 
         [RelayCommand]
@@ -777,6 +778,7 @@ namespace Analyzer.ViewModels
             _cachedReferencePoints = null;
             _cachedReferenceTime = "--:--.--";
             UpdateTelemetryCharts();
+            ShowReference = false;
         }
 
         [RelayCommand]
