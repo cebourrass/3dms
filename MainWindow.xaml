@@ -139,123 +139,195 @@
                                 <CheckBox Content="Graphiques" IsChecked="{Binding IsChartsVisible, Mode=TwoWay}" Foreground="White" FontWeight="SemiBold"/>
                             </StackPanel>
                         </Border>
-                    </TabItem>
+                    </TabItem>                    <TabItem Header="PARAMÈTRES" Style="{StaticResource RibbonTabItemStyle}">
+                        <Border Background="#2d3748" CornerRadius="4" Margin="0,5,0,10" Padding="15,12">
+                            <StackPanel Orientation="Horizontal">
+                                <!-- Group 1: Vitesse -->
+                                <Border BorderBrush="#334155" BorderThickness="0,0,1,0" Margin="0,0,15,0" Padding="0,0,15,0">
+                                    <StackPanel Width="120">
+                                        <TextBlock Text="VITESSE" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                        <Button Click="PickColor_Click" Tag="SpeedColor" HorizontalAlignment="Stretch" Height="28" Padding="8,0" ui:ControlHelper.CornerRadius="4">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Width="14" Height="14" Background="{Binding SpeedColor}" CornerRadius="2" Margin="0,0,10,0" BorderBrush="#888" BorderThickness="1"/>
+                                                <TextBlock Text="{Binding SpeedColor}" FontSize="11" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+                                        
+                                        <Grid Margin="0,6,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Slider Minimum="0.5" Maximum="5" Value="{Binding SpeedThickness}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding SpeedThickness, StringFormat='{}{0:F1}'}" FontSize="10" Foreground="White" VerticalAlignment="Center" Margin="5,0,0,0" Width="22" TextAlignment="Right"/>
+                                        </Grid>
+                                        
+                                        <Grid Margin="0,8,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="LISSAGE" FontSize="8" FontWeight="Bold" Foreground="#64748b" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <ComboBox Grid.Column="1" ItemsSource="{Binding SmoothingOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding SpeedSmoothing}" Height="24" Padding="4,0" ui:ControlHelper.CornerRadius="4" FontSize="10" HorizontalAlignment="Stretch"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
 
-                    <!-- Design Settings -->
-                    <TabItem Header="PARAMÈTRES" Style="{StaticResource RibbonTabItemStyle}">
-                        <Border Background="#2d3748" CornerRadius="4" Margin="0,5,0,10" Padding="20,12">
-                            <UniformGrid Columns="8">
-                                <!-- Speed Settings -->
-                                <StackPanel Margin="0,0,20,0">
-                                    <TextBlock Text="VITESSE" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
-                                    <Button Click="PickColor_Click" Tag="SpeedColor" HorizontalAlignment="Stretch" Height="28" Padding="8,0" ui:ControlHelper.CornerRadius="4">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Border Width="14" Height="14" Background="{Binding SpeedColor}" CornerRadius="2" Margin="0,0,10,0" BorderBrush="#888" BorderThickness="1"/>
-                                            <TextBlock Text="{Binding SpeedColor}" FontSize="11" VerticalAlignment="Center"/>
+                                <!-- Group 2: Angles -->
+                                <Border BorderBrush="#334155" BorderThickness="0,0,1,0" Margin="0,0,15,0" Padding="0,0,15,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <StackPanel Width="120" Margin="0,0,15,0">
+                                            <TextBlock Text="ANGLE G" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                            <Button Click="PickColor_Click" Tag="AngleColor" HorizontalAlignment="Stretch" Height="28" Padding="8,0" ui:ControlHelper.CornerRadius="4">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="14" Height="14" Background="{Binding AngleColor}" CornerRadius="2" Margin="0,0,10,0" BorderBrush="#888" BorderThickness="1"/>
+                                                    <TextBlock Text="{Binding AngleColor}" FontSize="11" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Grid Margin="0,6,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Slider Minimum="0.5" Maximum="5" Value="{Binding AngleThickness}" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding AngleThickness, StringFormat='{}{0:F1}'}" FontSize="10" Foreground="White" VerticalAlignment="Center" Margin="5,0,0,0" Width="22" TextAlignment="Right"/>
+                                            </Grid>
+
+                                            <Grid Margin="0,8,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="LISSAGE" FontSize="8" FontWeight="Bold" Foreground="#64748b" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <ComboBox Grid.Column="1" ItemsSource="{Binding SmoothingOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding AngleSmoothing}" Height="24" Padding="4,0" ui:ControlHelper.CornerRadius="4" FontSize="10" HorizontalAlignment="Stretch"/>
+                                            </Grid>
                                         </StackPanel>
-                                    </Button>
-                                    <Slider Minimum="0.5" Maximum="5" Value="{Binding SpeedThickness}" Margin="0,6,0,0"/>
-                                    <TextBlock Text="{Binding SpeedThickness, StringFormat='{}{0:F1}'}" FontSize="10" Foreground="White" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                                    
-                                    <TextBlock Text="LISSAGE" FontSize="8" FontWeight="Bold" Foreground="#64748b" Margin="0,8,0,2" HorizontalAlignment="Center"/>
-                                    <ComboBox ItemsSource="{Binding SmoothingOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding SpeedSmoothing}" Height="24" Padding="4,0" ui:ControlHelper.CornerRadius="4" FontSize="10"/>
-                                </StackPanel>
-                                
-                                <!-- Angle Settings -->
-                                <StackPanel Margin="0,0,20,0">
-                                    <TextBlock Text="ANGLE G" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
-                                    <Button Click="PickColor_Click" Tag="AngleColor" HorizontalAlignment="Stretch" Height="28" Padding="8,0" ui:ControlHelper.CornerRadius="4">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Border Width="14" Height="14" Background="{Binding AngleColor}" CornerRadius="2" Margin="0,0,10,0" BorderBrush="#888" BorderThickness="1"/>
-                                            <TextBlock Text="{Binding AngleColor}" FontSize="11" VerticalAlignment="Center"/>
+
+                                        <StackPanel Width="120">
+                                            <TextBlock Text="ANGLE D" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                            <Button Click="PickColor_Click" Tag="AngleRightColor" HorizontalAlignment="Stretch" Height="28" Padding="8,0" ui:ControlHelper.CornerRadius="4">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="14" Height="14" Background="{Binding AngleRightColor}" CornerRadius="2" Margin="0,0,10,0" BorderBrush="#888" BorderThickness="1"/>
+                                                    <TextBlock Text="{Binding AngleRightColor}" FontSize="11" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Grid Margin="0,6,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Slider Minimum="0.5" Maximum="5" Value="{Binding AngleRightThickness}" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding AngleRightThickness, StringFormat='{}{0:F1}'}" FontSize="10" Foreground="White" VerticalAlignment="Center" Margin="5,0,0,0" Width="22" TextAlignment="Right"/>
+                                            </Grid>
                                         </StackPanel>
-                                    </Button>
-                                    <Slider Minimum="0.5" Maximum="5" Value="{Binding AngleThickness}" Margin="0,6,0,0"/>
-                                    <TextBlock Text="{Binding AngleThickness, StringFormat='{}{0:F1}'}" FontSize="10" Foreground="White" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
 
-                                    <TextBlock Text="LISSAGE" FontSize="8" FontWeight="Bold" Foreground="#64748b" Margin="0,8,0,2" HorizontalAlignment="Center"/>
-                                    <ComboBox ItemsSource="{Binding SmoothingOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding AngleSmoothing}" Height="24" Padding="4,0" ui:ControlHelper.CornerRadius="4" FontSize="10"/>
-                                </StackPanel>
+                                <!-- Group 3: Accel/Decel -->
+                                <Border BorderBrush="#334155" BorderThickness="0,0,1,0" Margin="0,0,15,0" Padding="0,0,15,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <StackPanel Width="120" Margin="0,0,15,0">
+                                            <TextBlock Text="ACCEL (GAZ)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                            <Button Click="PickColor_Click" Tag="AccelColor" HorizontalAlignment="Stretch" Height="28" Padding="8,0" ui:ControlHelper.CornerRadius="4">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="14" Height="14" Background="{Binding AccelColor}" CornerRadius="2" Margin="0,0,10,0" BorderBrush="#888" BorderThickness="1"/>
+                                                    <TextBlock Text="{Binding AccelColor}" FontSize="11" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Grid Margin="0,6,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Slider Minimum="0.5" Maximum="5" Value="{Binding AccelThickness}" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding AccelThickness, StringFormat='{}{0:F1}'}" FontSize="10" Foreground="White" VerticalAlignment="Center" Margin="5,0,0,0" Width="22" TextAlignment="Right"/>
+                                            </Grid>
 
-                                <StackPanel Margin="0,0,20,0">
-                                    <TextBlock Text="ANGLE D" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
-                                    <Button Click="PickColor_Click" Tag="AngleRightColor" HorizontalAlignment="Stretch" Height="28" Padding="8,0" ui:ControlHelper.CornerRadius="4">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Border Width="14" Height="14" Background="{Binding AngleRightColor}" CornerRadius="2" Margin="0,0,10,0" BorderBrush="#888" BorderThickness="1"/>
-                                            <TextBlock Text="{Binding AngleRightColor}" FontSize="11" VerticalAlignment="Center"/>
+                                            <Grid Margin="0,8,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="LISSAGE" FontSize="8" FontWeight="Bold" Foreground="#64748b" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <ComboBox Grid.Column="1" ItemsSource="{Binding SmoothingOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding AccelSmoothing}" Height="24" Padding="4,0" ui:ControlHelper.CornerRadius="4" FontSize="10" HorizontalAlignment="Stretch"/>
+                                            </Grid>
                                         </StackPanel>
-                                    </Button>
-                                    <Slider Minimum="0.5" Maximum="5" Value="{Binding AngleRightThickness}" Margin="0,6,0,0"/>
-                                    <TextBlock Text="{Binding AngleRightThickness, StringFormat='{}{0:F1}'}" FontSize="10" Foreground="White" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                                </StackPanel>
 
-                                <!-- Accel Settings -->
-                                <StackPanel Margin="0,0,20,0">
-                                    <TextBlock Text="ACCEL (GAZ)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
-                                    <Button Click="PickColor_Click" Tag="AccelColor" HorizontalAlignment="Stretch" Height="28" Padding="8,0" ui:ControlHelper.CornerRadius="4">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Border Width="14" Height="14" Background="{Binding AccelColor}" CornerRadius="2" Margin="0,0,10,0" BorderBrush="#888" BorderThickness="1"/>
-                                            <TextBlock Text="{Binding AccelColor}" FontSize="11" VerticalAlignment="Center"/>
+                                        <StackPanel Width="120">
+                                            <TextBlock Text="DÉCÉL (FREIN)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                            <Button Click="PickColor_Click" Tag="DecelColor" HorizontalAlignment="Stretch" Height="28" Padding="8,0" ui:ControlHelper.CornerRadius="4">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="14" Height="14" Background="{Binding DecelColor}" CornerRadius="2" Margin="0,0,10,0" BorderBrush="#888" BorderThickness="1"/>
+                                                    <TextBlock Text="{Binding DecelColor}" FontSize="11" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Grid Margin="0,6,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Slider Minimum="0.5" Maximum="5" Value="{Binding DecelThickness}" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding DecelThickness, StringFormat='{}{0:F1}'}" FontSize="10" Foreground="White" VerticalAlignment="Center" Margin="5,0,0,0" Width="22" TextAlignment="Right"/>
+                                            </Grid>
                                         </StackPanel>
-                                    </Button>
-                                    <Slider Minimum="0.5" Maximum="5" Value="{Binding AccelThickness}" Margin="0,6,0,0"/>
-                                    <TextBlock Text="{Binding AccelThickness, StringFormat='{}{0:F1}'}" FontSize="10" Foreground="White" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
 
-                                    <TextBlock Text="LISSAGE" FontSize="8" FontWeight="Bold" Foreground="#64748b" Margin="0,8,0,2" HorizontalAlignment="Center"/>
-                                    <ComboBox ItemsSource="{Binding SmoothingOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding AccelSmoothing}" Height="24" Padding="4,0" ui:ControlHelper.CornerRadius="4" FontSize="10"/>
-                                </StackPanel>
+                                <!-- Group 4: Reference -->
+                                <Border BorderBrush="#334155" BorderThickness="0,0,1,0" Margin="0,0,15,0" Padding="0,0,15,0">
+                                    <StackPanel Width="120">
+                                        <TextBlock Text="RÉFÉRENCE" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                        <Button Click="PickColor_Click" Tag="RefColor" HorizontalAlignment="Stretch" Height="28" Padding="8,0" ui:ControlHelper.CornerRadius="4">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Width="14" Height="14" Background="{Binding RefColor}" CornerRadius="2" Margin="0,0,10,0" BorderBrush="#888" BorderThickness="1"/>
+                                                <TextBlock Text="{Binding RefColor}" FontSize="11" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Grid Margin="0,6,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Slider Minimum="0.5" Maximum="5" Value="{Binding RefThickness}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding RefThickness, StringFormat='{}{0:F1}'}" FontSize="10" Foreground="White" VerticalAlignment="Center" Margin="5,0,0,0" Width="22" TextAlignment="Right"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
 
-                                <StackPanel Margin="0,0,20,0">
-                                    <TextBlock Text="DÉCÉL (FREIN)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
-                                    <Button Click="PickColor_Click" Tag="DecelColor" HorizontalAlignment="Stretch" Height="28" Padding="8,0" ui:ControlHelper.CornerRadius="4">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Border Width="14" Height="14" Background="{Binding DecelColor}" CornerRadius="2" Margin="0,0,10,0" BorderBrush="#888" BorderThickness="1"/>
-                                            <TextBlock Text="{Binding DecelColor}" FontSize="11" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </Button>
-                                    <Slider Minimum="0.5" Maximum="5" Value="{Binding DecelThickness}" Margin="0,6,0,0"/>
-                                    <TextBlock Text="{Binding DecelThickness, StringFormat='{}{0:F1}'}" FontSize="10" Foreground="White" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                                </StackPanel>
+                                <!-- Group 5: Comparison -->
+                                <Border BorderBrush="#334155" BorderThickness="0,0,1,0" Margin="0,0,15,0" Padding="0,0,15,0">
+                                    <StackPanel Width="150">
+                                        <TextBlock Text="ÉPAYS. COMP. (LENT/RAPIDE)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Margin="0,0,5,0">
+                                                <Slider Minimum="0.1" Maximum="3" Value="{Binding CompSlowThickness}"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Margin="5,0,0,0">
+                                                <Slider Minimum="0.1" Maximum="3" Value="{Binding CompFastThickness}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <TextBlock FontSize="10" Foreground="White" HorizontalAlignment="Center" Margin="0,2,0,0">
+                                            <Run Text="{Binding CompSlowThickness, StringFormat='{}{0:F1}', Mode=OneWay}"/>
+                                            <Run Text=" (Lent) - "/>
+                                            <Run Text="{Binding CompFastThickness, StringFormat='{}{0:F1}', Mode=OneWay}"/>
+                                            <Run Text=" (Rap.)"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
 
-                                <!-- Reference Settings -->
-                                <StackPanel Margin="0,0,20,0">
-                                    <TextBlock Text="RÉFÉRENCE" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
-                                    <Button Click="PickColor_Click" Tag="RefColor" HorizontalAlignment="Stretch" Height="28" Padding="8,0" ui:ControlHelper.CornerRadius="4">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Border Width="14" Height="14" Background="{Binding RefColor}" CornerRadius="2" Margin="0,0,10,0" BorderBrush="#888" BorderThickness="1"/>
-                                            <TextBlock Text="{Binding RefColor}" FontSize="11" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </Button>
-                                    <Slider Minimum="0.5" Maximum="5" Value="{Binding RefThickness}" Margin="0,6,0,0"/>
-                                    <TextBlock Text="{Binding RefThickness, StringFormat='{}{0:F1}'}" FontSize="10" Foreground="White" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                                </StackPanel>
-
-                                <!-- Comparison Range Settings -->
-                                <StackPanel Margin="0,0,20,0">
-                                    <TextBlock Text="ÉPAYS. COMP. (RAPIDE/LENT)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Grid.Column="0" Margin="0,0,5,0">
-                                            <Slider Minimum="0.1" Maximum="3" Value="{Binding CompFastThickness}"/>
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="1" Margin="5,0,0,0">
-                                            <Slider Minimum="0.1" Maximum="3" Value="{Binding CompSlowThickness}"/>
-                                        </StackPanel>
-                                    </Grid>
-                                    <TextBlock FontSize="10" Foreground="White" HorizontalAlignment="Center" Margin="0,2,0,0">
-                                        <Run Text="{Binding CompFastThickness, StringFormat='{}{0:F1}', Mode=OneWay}"/>
-                                        <Run Text=" (Rap.) - "/>
-                                        <Run Text="{Binding CompSlowThickness, StringFormat='{}{0:F1}', Mode=OneWay}"/>
-                                        <Run Text=" (Lent)"/>
-                                    </TextBlock>
-                                </StackPanel>
-
-                                <!-- Regularity Thresholds -->
-                                <StackPanel Margin="20,0,0,0">
+                                <!-- Group 6: Regularity -->
+                                <StackPanel Width="180">
                                     <TextBlock Text="SEUILS RÉGULARITÉ (s)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                    
+                                    <ComboBox ItemsSource="{Binding PilotProfiles}" 
+                                              SelectedItem="{Binding SelectedPilotProfile}"
+                                              Height="24" Padding="8,0" ui:ControlHelper.CornerRadius="4" 
+                                              FontSize="10" HorizontalAlignment="Stretch" Margin="0,0,0,8"/>
+
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
@@ -274,12 +346,10 @@
                                                          Minimum="0.05" Maximum="2" Height="28"/>
                                         </StackPanel>
                                     </Grid>
-                                    <TextBlock Text="Ajuster selon le niveau" FontSize="10" Foreground="White" Opacity="0.5" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                 </StackPanel>
-                            </UniformGrid>
+                            </StackPanel>
                         </Border>
                     </TabItem>
-
                 </TabControl>
             </StackPanel>
         </Border>

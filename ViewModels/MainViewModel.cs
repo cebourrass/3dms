@@ -53,6 +53,14 @@ namespace Analyzer.ViewModels
         public GpsPoint? StartPoint { get; set; }
         public override string ToString() => Name;
     }
+
+    public class PilotProfile
+    {
+        public string Name { get; set; } = string.Empty;
+        public double Excellent { get; set; }
+        public double Medium { get; set; }
+        public override string ToString() => Name;
+    }
     public partial class MainViewModel : ObservableObject
     {
         private readonly Ra1ReaderService _readerService = new Ra1ReaderService();
@@ -144,7 +152,7 @@ namespace Analyzer.ViewModels
         {
             new SmoothingOption { Name = "Brut", Value = 1 },
             new SmoothingOption { Name = "Standard", Value = 3 },
-            new SmoothingOption { Name = "Lissage fort", Value = 5 },
+            new SmoothingOption { Name = "Fort", Value = 5 },
             new SmoothingOption { Name = "Très fort", Value = 8 }
         };
 
@@ -219,14 +227,57 @@ namespace Analyzer.ViewModels
         public double RegularityThresholdExcellent 
         { 
             get => _regularityThresholdExcellent; 
-            set { if (SetProperty(ref _regularityThresholdExcellent, value)) UpdateRegularityStats(); } 
+            set 
+            { 
+                if (SetProperty(ref _regularityThresholdExcellent, value)) 
+                { 
+                    if (!_isApplyingProfile) SelectedPilotProfile = PilotProfiles.Last();
+                    UpdateRegularityStats(); 
+                } 
+            } 
         }
 
         private double _regularityThresholdMedium = 0.30;
         public double RegularityThresholdMedium 
         { 
             get => _regularityThresholdMedium; 
-            set { if (SetProperty(ref _regularityThresholdMedium, value)) UpdateRegularityStats(); } 
+            set 
+            { 
+                if (SetProperty(ref _regularityThresholdMedium, value)) 
+                { 
+                    if (!_isApplyingProfile) SelectedPilotProfile = PilotProfiles.Last();
+                    UpdateRegularityStats(); 
+                } 
+            } 
+        }
+
+        public List<PilotProfile> PilotProfiles { get; } = new()
+        {
+            new PilotProfile { Name = "Expert / Pro", Excellent = 0.05, Medium = 0.15 },
+            new PilotProfile { Name = "Confirmé / Régulier", Excellent = 0.10, Medium = 0.30 },
+            new PilotProfile { Name = "Intermédiaire", Excellent = 0.25, Medium = 0.60 },
+            new PilotProfile { Name = "Débutant", Excellent = 0.50, Medium = 1.20 },
+            new PilotProfile { Name = "Personnalisé", Excellent = 0, Medium = 0 }
+        };
+
+        private bool _isApplyingProfile = false;
+        private PilotProfile? _selectedPilotProfile;
+        public PilotProfile? SelectedPilotProfile
+        {
+            get => _selectedPilotProfile;
+            set
+            {
+                if (SetProperty(ref _selectedPilotProfile, value) && value != null)
+                {
+                    if (value.Name != "Personnalisé")
+                    {
+                        _isApplyingProfile = true;
+                        RegularityThresholdExcellent = value.Excellent;
+                        RegularityThresholdMedium = value.Medium;
+                        _isApplyingProfile = false;
+                    }
+                }
+            }
         }
 
         private string _xAxisValueLabel = "TEMPS";
@@ -449,6 +500,10 @@ namespace Analyzer.ViewModels
             _accelSmoothing = _settings.AccelSmoothing;
 
             _showDeltaTime = false; // Par défaut éteint
+            
+            _regularityThresholdExcellent = _settings.RegularityThresholdExcellent;
+            _regularityThresholdMedium = _settings.RegularityThresholdMedium;
+            SelectedPilotProfile = PilotProfiles.FirstOrDefault(p => p.Name == _settings.SelectedPilotProfileName) ?? PilotProfiles[1];
 
             _isLapsVisible = _settings.IsLapsVisible;
             _isSessionInfoVisible = _settings.IsSessionInfoVisible;
@@ -513,6 +568,9 @@ namespace Analyzer.ViewModels
             _settings.AccelSmoothing = AccelSmoothing;
 
             _settings.LastFilePath = CurrentSession?.FilePath;
+            _settings.SelectedPilotProfileName = SelectedPilotProfile?.Name;
+            _settings.RegularityThresholdExcellent = RegularityThresholdExcellent;
+            _settings.RegularityThresholdMedium = RegularityThresholdMedium;
 
             _settingsService.SaveSettings(_settings);
         }

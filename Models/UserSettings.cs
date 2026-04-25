@@ -47,7 +47,12 @@ namespace Analyzer.Models
         public int AngleSmoothing { get; set; } = 3;
         public int AccelSmoothing { get; set; } = 3;
 
+        // Seuils de régularité
+        public double RegularityThresholdExcellent { get; set; } = 0.10;
+        public double RegularityThresholdMedium { get; set; } = 0.30;
+
         // Dernière session
         public string? LastFilePath { get; set; }
+        public string? SelectedPilotProfileName { get; set; }
     }
 }
