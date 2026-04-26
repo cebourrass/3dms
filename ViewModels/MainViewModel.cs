@@ -340,8 +340,16 @@ namespace Analyzer.ViewModels
         public double TrackWidthPixels
         {
             get => _trackWidthPixels;
-            set => SetProperty(ref _trackWidthPixels, value);
+            set
+            {
+                if (SetProperty(ref _trackWidthPixels, value))
+                {
+                    OnPropertyChanged(nameof(TrackBorderWidthPixels));
+                }
+            }
         }
+
+        public double TrackBorderWidthPixels => TrackWidthPixels + 2.0;
 
         private string _circuitName = "Aucun circuit";
         public string CircuitName
@@ -1857,7 +1865,7 @@ namespace Analyzer.ViewModels
                 {
                     Color = color,
                     Points = projPoints,
-                    Thickness = lap == SelectedLap ? 2.5 : 1.5,
+                    Thickness = lap == SelectedLap ? 1.2 : 0.6,
                     Opacity = 1.0f
                 });
             }

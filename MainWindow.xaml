@@ -575,13 +575,20 @@
                                     <!-- Vue Trace (Scale/Pan géré par Stretch Uniform) -->
                                     <Viewbox Stretch="Uniform" Margin="20">
                                         <Grid Width="500" Height="500">
-                                            <!-- 1. La Piste (Ligne de référence épaisse) -->
+                                            <!-- 1. Bordure de Piste (Légèrement plus large) -->
+                                            <Polyline Points="{Binding TrajectoryPoints}" 
+                                                      Stroke="#334155" 
+                                                      StrokeThickness="{Binding TrackBorderWidthPixels}" 
+                                                      StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                                      Opacity="0.8"/>
+
+                                            <!-- 2. La Piste (Asphalte) -->
                                             <Polyline Points="{Binding TrajectoryPoints}" 
                                                       Stroke="#1e293b" 
                                                       StrokeThickness="{Binding TrackWidthPixels}" 
                                                       StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                                             
-                                            <!-- 2. Les Trajectoires Réelles -->
+                                            <!-- 3. Les Trajectoires Réelles -->
                                             <ItemsControl ItemsSource="{Binding LapTrajectories}">
                                                 <ItemsControl.ItemsPanel>
                                                     <ItemsPanelTemplate>
