@@ -7,6 +7,8 @@ namespace Analyzer.Models
         public string Name { get; set; } = string.Empty;
         public List<GpsPoint> Trajectory { get; set; } = new List<GpsPoint>();
         public Dictionary<string, GpsPoint> Markers { get; set; } = new Dictionary<string, GpsPoint>();
+        public double TrackWidth { get; set; }
+        public double Orientation { get; set; }
     }
 
     public class GpsPoint

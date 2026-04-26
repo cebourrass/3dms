@@ -46,7 +46,10 @@ namespace Analyzer.Services
                     // Les fichiers .ra1 ont un champ réservé de 4 octets à la fin de chaque record
                     stream.Seek(4, SeekOrigin.Current);
 
-                    points.Add(point);
+                    if (point.Latitude != 0 && point.Longitude != 0)
+                    {
+                        points.Add(point);
+                    }
                 }
 
                 // Calcul des distances cumulées
