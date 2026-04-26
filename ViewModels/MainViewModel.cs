@@ -61,6 +61,14 @@ namespace Analyzer.ViewModels
         public double Medium { get; set; }
         public override string ToString() => Name;
     }
+
+    public class LapTrajectory : ObservableObject
+    {
+        public string Color { get; set; } = "#FFFFFF";
+        public System.Windows.Media.PointCollection Points { get; set; } = new();
+        public double Thickness { get; set; } = 1.5;
+        public float Opacity { get; set; } = 1.0f;
+    }
     public partial class MainViewModel : ObservableObject
     {
         private readonly Ra1ReaderService _readerService = new Ra1ReaderService();
@@ -326,6 +334,15 @@ namespace Analyzer.ViewModels
             set => SetProperty(ref _trajectoryPoints, value);
         }
 
+        public ObservableCollection<LapTrajectory> LapTrajectories { get; } = new();
+
+        private double _trackWidthPixels = 5.0;
+        public double TrackWidthPixels
+        {
+            get => _trackWidthPixels;
+            set => SetProperty(ref _trackWidthPixels, value);
+        }
+
         private string _circuitName = "Aucun circuit";
         public string CircuitName
         {
@@ -345,6 +362,7 @@ namespace Analyzer.ViewModels
                 if (SetProperty(ref _selectedCircuit, value) && value != null && CurrentSession != null)
                 {
                     ApplyCircuit(value.FilePath);
+                    UpdateTrajectoryUI(CurrentMap);
                 }
             }
         }
@@ -1380,8 +1398,8 @@ namespace Analyzer.ViewModels
                     if (range < 0.1) range = 0.1; // Minimum de 0.1s de plage
                     
                     double margin = range * 0.1;
-                    YAxes[1].MinLimit = minD - margin;
                     YAxes[1].MaxLimit = maxD + margin;
+                    YAxes[1].MinLimit = minD - margin;
                 }
                 else
                 {
@@ -1391,12 +1409,13 @@ namespace Analyzer.ViewModels
             }
             else
             {
-                YAxes[1].Name = "Angle (°) / G";
-                YAxes[1].Labeler = value => Math.Round(value, 1).ToString();
-                YAxes[1].MinLimit = null;
-                YAxes[1].MaxLimit = null;
-                YAxes[1].IsVisible = IsAnyAngleVisible || IsAnyAccelVisible;
+                YAxes[1].IsVisible = false;
             }
+
+            Sections = sectionsList.ToArray();
+            
+            // Mise à jour de la carte / trajectoires
+            UpdateTrajectoryUI(CurrentMap);
 
             // MODE TÉLÉMÉTRIE NORMAL (Axe de gauche)
             YAxes[0].Name = "Vitesse (km/h)";
@@ -1767,10 +1786,16 @@ namespace Analyzer.ViewModels
         private void LoadMockupData()
         {
         }
-        private void UpdateTrajectoryUI(TrackMap map)
+        private void UpdateTrajectoryUI(TrackMap? map)
         {
-            if (map.Trajectory.Count == 0) return;
+            if (map == null || map.Trajectory.Count == 0)
+            {
+                TrajectoryPoints = new();
+                LapTrajectories.Clear();
+                return;
+            }
 
+            // 1. Calculer la bounding box globale (basée sur le tracé de référence)
             double minLat = map.Trajectory.Min(p => p.Latitude);
             double maxLat = map.Trajectory.Max(p => p.Latitude);
             double minLon = map.Trajectory.Min(p => p.Longitude);
@@ -1779,29 +1804,63 @@ namespace Analyzer.ViewModels
             double latRange = maxLat - minLat;
             double lonRange = maxLon - minLon;
 
-            // Protection division par zéro
             if (latRange == 0) latRange = 0.0001;
             if (lonRange == 0) lonRange = 0.0001;
 
-            double canvasWidth = 300; // Taille virtuelle pour le binding
-            double canvasHeight = 300;
+            double canvasWidth = 500; // Espace virtuel plus large
+            double canvasHeight = 500;
 
-            // On garde l'aspect ratio
             double ratio = Math.Cos(minLat * Math.PI / 180.0);
             double scaleLat = canvasHeight / latRange;
             double scaleLon = canvasWidth / (lonRange * ratio);
-            double scale = Math.Min(scaleLat, scaleLon) * 0.8; // 80% du canvas
+            double scale = Math.Min(scaleLat, scaleLon) * 0.9;
 
-            var points = new System.Windows.Media.PointCollection();
+            // Calcul de la largeur de piste en pixels (approx: 1° lat = 111111m)
+            TrackWidthPixels = map.TrackWidth * (scaleLat / 111111.0);
+            if (TrackWidthPixels < 2) TrackWidthPixels = 2;
+
+            // 2. Projeter le tracé de référence
+            var refPoints = new System.Windows.Media.PointCollection();
             foreach (var p in map.Trajectory)
             {
-                // Inversion Y car en UI 0 est en haut
-                double x = (p.Longitude - minLon) * ratio * scale + (canvasWidth / 10);
-                double y = canvasHeight - ((p.Latitude - minLat) * scale + (canvasHeight / 10));
-                points.Add(new System.Windows.Point(x, y));
+                double x = (p.Longitude - minLon) * ratio * scale + (canvasWidth * 0.05);
+                double y = canvasHeight - ((p.Latitude - minLat) * scale + (canvasHeight * 0.05));
+                refPoints.Add(new System.Windows.Point(x, y));
             }
+            TrajectoryPoints = refPoints;
 
-            TrajectoryPoints = points;
+            // 3. Projeter les trajectoires des tours sélectionnés
+            LapTrajectories.Clear();
+            var lapsToDraw = new List<LapData>();
+            if (SelectedLap != null) lapsToDraw.Add(SelectedLap);
+            foreach (var lap in ComparisonLaps) if (lap != SelectedLap) lapsToDraw.Add(lap);
+
+            foreach (var lap in lapsToDraw)
+            {
+                var points = lap.TelemetryPoints ?? GetLapPoints(lap);
+                if (points == null || !points.Any()) continue;
+
+                var projPoints = new System.Windows.Media.PointCollection();
+                foreach (var p in points)
+                {
+                    double x = (p.Longitude - minLon) * ratio * scale + (canvasWidth * 0.05);
+                    double y = canvasHeight - ((p.Latitude - minLat) * scale + (canvasHeight * 0.05));
+                    projPoints.Add(new System.Windows.Point(x, y));
+                }
+
+                // Déterminer la couleur
+                string color = lap == SelectedLap ? SpeedColor : "#6366f1";
+                var legend = LegendEntries.FirstOrDefault(le => le.Label.Contains(lap.LapTime));
+                if (legend != null) color = legend.Color;
+
+                LapTrajectories.Add(new LapTrajectory
+                {
+                    Color = color,
+                    Points = projPoints,
+                    Thickness = lap == SelectedLap ? 2.5 : 1.5,
+                    Opacity = 1.0f
+                });
+            }
         }
 
         private string? FindMatchingMap(string sessionFilePath)
