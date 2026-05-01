@@ -192,8 +192,39 @@ namespace Analyzer.ViewModels
         public bool IsAnyAngleVisible => ShowAngleLeft || ShowAngleRight;
         public bool IsAnyAccelVisible => ShowAccel || ShowDecel;
 
+        private bool _showMapTooltip = true;
+        public bool ShowMapTooltip { get => _showMapTooltip; set => SetProperty(ref _showMapTooltip, value); }
+
         private double _currentX;
         public double CurrentX { get => _currentX; set => SetProperty(ref _currentX, value); }
+
+        private TelemetryPoint? _currentTelemetryPoint;
+        public TelemetryPoint? CurrentTelemetryPoint
+        {
+            get => _currentTelemetryPoint;
+            set => SetProperty(ref _currentTelemetryPoint, value);
+        }
+
+        private double _cursorMapX;
+        public double CursorMapX
+        {
+            get => _cursorMapX;
+            set => SetProperty(ref _cursorMapX, value);
+        }
+
+        private double _cursorMapY;
+        public double CursorMapY
+        {
+            get => _cursorMapY;
+            set => SetProperty(ref _cursorMapY, value);
+        }
+
+        // Paramètres de projection pour la carte
+        private double _mapScale;
+        private double _mapRatio;
+        private double _mapMinLat;
+        private double _mapMinLon;
+        private const double MapCanvasSize = 500;
         
         private double _currentSpeed;
         public double CurrentSpeed { get => _currentSpeed; set => SetProperty(ref _currentSpeed, value); }
@@ -1656,6 +1687,14 @@ namespace Analyzer.ViewModels
 
                 if (point != null)
                 {
+                    CurrentTelemetryPoint = point;
+                    
+                    // Projection du curseur sur la carte
+                    if (_mapScale > 0)
+                    {
+                        CursorMapX = (point.Longitude - _mapMinLon) * _mapRatio * _mapScale + (MapCanvasSize * 0.05);
+                        CursorMapY = MapCanvasSize - ((point.Latitude - _mapMinLat) * _mapScale + (MapCanvasSize * 0.05));
+                    }
                     CurrentSpeed = point.Speed;
                     CurrentAngle = Math.Abs(point.LeanAngle);
                     CurrentAngleColor = point.LeanAngle <= 0 ? AngleColor : AngleRightColor;
@@ -1815,13 +1854,12 @@ namespace Analyzer.ViewModels
             if (latRange == 0) latRange = 0.0001;
             if (lonRange == 0) lonRange = 0.0001;
 
-            double canvasWidth = 500; // Espace virtuel plus large
-            double canvasHeight = 500;
-
-            double ratio = Math.Cos(minLat * Math.PI / 180.0);
-            double scaleLat = canvasHeight / latRange;
-            double scaleLon = canvasWidth / (lonRange * ratio);
-            double scale = Math.Min(scaleLat, scaleLon) * 0.9;
+            _mapMinLat = minLat;
+            _mapMinLon = minLon;
+            _mapRatio = Math.Cos(minLat * Math.PI / 180.0);
+            double scaleLat = MapCanvasSize / latRange;
+            double scaleLon = MapCanvasSize / (lonRange * _mapRatio);
+            _mapScale = Math.Min(scaleLat, scaleLon) * 0.9;
 
             // Calcul de la largeur de piste en pixels (approx: 1° lat = 111111m)
             TrackWidthPixels = map.TrackWidth * (scaleLat / 111111.0);
@@ -1831,8 +1869,8 @@ namespace Analyzer.ViewModels
             var refPoints = new System.Windows.Media.PointCollection();
             foreach (var p in map.Trajectory)
             {
-                double x = (p.Longitude - minLon) * ratio * scale + (canvasWidth * 0.05);
-                double y = canvasHeight - ((p.Latitude - minLat) * scale + (canvasHeight * 0.05));
+                double x = (p.Longitude - _mapMinLon) * _mapRatio * _mapScale + (MapCanvasSize * 0.05);
+                double y = MapCanvasSize - ((p.Latitude - _mapMinLat) * _mapScale + (MapCanvasSize * 0.05));
                 refPoints.Add(new System.Windows.Point(x, y));
             }
             TrajectoryPoints = refPoints;
@@ -1851,15 +1889,24 @@ namespace Analyzer.ViewModels
                 var projPoints = new System.Windows.Media.PointCollection();
                 foreach (var p in points)
                 {
-                    double x = (p.Longitude - minLon) * ratio * scale + (canvasWidth * 0.05);
-                    double y = canvasHeight - ((p.Latitude - minLat) * scale + (canvasHeight * 0.05));
+                    double x = (p.Longitude - _mapMinLon) * _mapRatio * _mapScale + (MapCanvasSize * 0.05);
+                    double y = MapCanvasSize - ((p.Latitude - _mapMinLat) * _mapScale + (MapCanvasSize * 0.05));
                     projPoints.Add(new System.Windows.Point(x, y));
                 }
 
                 // Déterminer la couleur
-                string color = lap == SelectedLap ? SpeedColor : "#6366f1";
-                var legend = LegendEntries.FirstOrDefault(le => le.Label.Contains(lap.LapTime));
-                if (legend != null) color = legend.Color;
+                string color = "#FFFFFF";
+                if (lap == SelectedLap)
+                {
+                    color = SpeedColor;
+                }
+                else
+                {
+                    // Recherche sécurisée dans la légende
+                    var lapLabel = $"T{lap.Number}";
+                    var legend = LegendEntries.FirstOrDefault(le => le.Label != null && le.Label.Contains(lapLabel));
+                    color = legend?.Color ?? "#6366f1";
+                }
 
                 LapTrajectories.Add(new LapTrajectory
                 {

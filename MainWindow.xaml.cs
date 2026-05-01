@@ -53,6 +53,8 @@ namespace Analyzer
                         var serializer = new Xceed.Wpf.AvalonDock.Layout.Serialization.XmlLayoutSerializer(DockManager);
                         serializer.LayoutSerializationCallback += (s, args) =>
                         {
+                            if (args.Model == null || string.IsNullOrEmpty(args.Model.ContentId)) return;
+
                             // On récupère le contenu UI défini dans le XAML pour l'injecter dans le nouveau layout
                             var existingPane = this.FindName(args.Model.ContentId) as Xceed.Wpf.AvalonDock.Layout.LayoutAnchorable;
                             if (existingPane != null)
@@ -63,13 +65,15 @@ namespace Analyzer
                         serializer.Deserialize(layoutPath);
 
                         // IMPORTANT : Après désérialisation, les objets Anchorable ont été recréés.
-                        // On doit remettre à jour nos références locales pour que le SyncPane fonctionne toujours.
-                        var allPanes = DockManager.Layout.Descendents().OfType<LayoutAnchorable>().ToList();
-                        ExplorerPane = allPanes.FirstOrDefault(p => p.ContentId == "ExplorerPane") ?? ExplorerPane;
-                        LapsPane = allPanes.FirstOrDefault(p => p.ContentId == "LapsPane") ?? LapsPane;
-                        SessionInfoPane = allPanes.FirstOrDefault(p => p.ContentId == "SessionInfoPane") ?? SessionInfoPane;
-                        MapPane = allPanes.FirstOrDefault(p => p.ContentId == "MapPane") ?? MapPane;
-                        ChartsPane = allPanes.FirstOrDefault(p => p.ContentId == "ChartsPane") ?? ChartsPane;
+                        if (DockManager.Layout != null)
+                        {
+                            var allPanes = DockManager.Layout.Descendents().OfType<LayoutAnchorable>().ToList();
+                            ExplorerPane = allPanes.FirstOrDefault(p => p.ContentId == "ExplorerPane") ?? ExplorerPane;
+                            LapsPane = allPanes.FirstOrDefault(p => p.ContentId == "LapsPane") ?? LapsPane;
+                            SessionInfoPane = allPanes.FirstOrDefault(p => p.ContentId == "SessionInfoPane") ?? SessionInfoPane;
+                            MapPane = allPanes.FirstOrDefault(p => p.ContentId == "MapPane") ?? MapPane;
+                            ChartsPane = allPanes.FirstOrDefault(p => p.ContentId == "ChartsPane") ?? ChartsPane;
+                        }
                     }
                     catch 
                     { 
