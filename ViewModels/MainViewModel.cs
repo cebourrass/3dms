@@ -212,6 +212,66 @@ namespace Analyzer.ViewModels
         private bool _showMapTooltip = true;
         public bool ShowMapTooltip { get => _showMapTooltip; set => SetProperty(ref _showMapTooltip, value); }
 
+        private double _mapRotation = 0;
+        public double MapRotation { get => _mapRotation; set => SetProperty(ref _mapRotation, value); }
+
+        private double _mapZoom = 1.0;
+        public double MapZoom { get => _mapZoom; set => SetProperty(ref _mapZoom, value); }
+
+        [RelayCommand]
+        public void ResetMapRotation()
+        {
+            MapRotation = 0;
+        }
+
+        [RelayCommand]
+        public void ResetMapZoom()
+        {
+            MapZoom = 1.0;
+            MapPanX = 0;
+            MapPanY = 0;
+        }
+
+        private double _mapPanX = 0;
+        public double MapPanX { get => _mapPanX; set => SetProperty(ref _mapPanX, value); }
+
+        private double _mapPanY = 0;
+        public double MapPanY { get => _mapPanY; set => SetProperty(ref _mapPanY, value); }
+
+        [RelayCommand]
+        public void ResetMapPan()
+        {
+            MapPanX = 0;
+            MapPanY = 0;
+        }
+
+        private double _mapTrajectoryThickness = 1.2;
+        public double MapTrajectoryThickness
+        {
+            get => _mapTrajectoryThickness;
+            set { if (SetProperty(ref _mapTrajectoryThickness, value)) UpdateTrajectoryUI(CurrentSession?.CircuitMap); }
+        }
+
+        private double _mapCursorSize = 6.0;
+        public double MapCursorSize
+        {
+            get => _mapCursorSize;
+            set 
+            { 
+                if (SetProperty(ref _mapCursorSize, value))
+                {
+                    OnPropertyChanged(nameof(MapCursorOuterSize));
+                    OnPropertyChanged(nameof(MapCursorMargin));
+                    OnPropertyChanged(nameof(MapCursorOuterMargin));
+                }
+            }
+        }
+
+        public double MapCursorOuterSize => MapCursorSize * 1.8;
+        public System.Windows.Thickness MapCursorMargin => new System.Windows.Thickness(-MapCursorSize / 2.0);
+        public System.Windows.Thickness MapCursorOuterMargin => new System.Windows.Thickness(-MapCursorOuterSize / 2.0);
+        public double MapCursorBlurRadius => MapCursorSize / 1.5;
+
         private double _currentX;
         public double CurrentX { get => _currentX; set => SetProperty(ref _currentX, value); }
 
@@ -584,6 +644,8 @@ namespace Analyzer.ViewModels
             _angleSmoothing = _settings.AngleSmoothing;
             _accelSmoothing = _settings.AccelSmoothing;
             _interpolationStepMs = _settings.InterpolationStepMs > 0 ? _settings.InterpolationStepMs : 20.0;
+            _mapTrajectoryThickness = _settings.MapTrajectoryThickness > 0 ? _settings.MapTrajectoryThickness : 1.2;
+            _mapCursorSize = _settings.MapCursorSize > 0 ? _settings.MapCursorSize : 6.0;
 
             _showDeltaTime = false; // Par défaut éteint
             
@@ -653,6 +715,8 @@ namespace Analyzer.ViewModels
             _settings.AngleSmoothing = AngleSmoothing;
             _settings.AccelSmoothing = AccelSmoothing;
             _settings.InterpolationStepMs = InterpolationStepMs;
+            _settings.MapTrajectoryThickness = MapTrajectoryThickness;
+            _settings.MapCursorSize = MapCursorSize;
 
             _settings.LastFilePath = CurrentSession?.FilePath;
             _settings.SelectedPilotProfileName = SelectedPilotProfile?.Name;
@@ -1977,7 +2041,7 @@ namespace Analyzer.ViewModels
                 {
                     Color = color,
                     Points = projPoints,
-                    Thickness = lap == SelectedLap ? 1.2 : 0.6,
+                    Thickness = lap == SelectedLap ? MapTrajectoryThickness : (MapTrajectoryThickness / 2.0),
                     Opacity = 1.0f
                 });
             }

@@ -8,6 +8,7 @@
         xmlns:vm="clr-namespace:Analyzer.ViewModels"
         xmlns:dock="http://schemas.xceed.com/wpf/xaml/avalondock"
         xmlns:Models="clr-namespace:Analyzer.Models"
+        xmlns:local="clr-namespace:Analyzer"
         mc:Ignorable="d"
         ui:WindowHelper.UseModernWindowStyle="True"
         ui:ThemeManager.RequestedTheme="Dark"
@@ -15,6 +16,7 @@
         Background="#1e1e1e">
     
     <Window.Resources>
+        <local:InvertRotationConverter x:Key="InvertRotationConverter"/>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <!-- Grid Styles -->
         <Style x:Key="BestLapRowStyle" TargetType="DataGridRow" BasedOn="{StaticResource DefaultDataGridRowStyle}">
@@ -333,6 +335,17 @@
                                     </StackPanel>
                                 </Border>
 
+                                <!-- Group 5.8: Map Rendering -->
+                                <Border BorderBrush="#334155" BorderThickness="0,0,1,0" Margin="0,0,15,0" Padding="0,0,15,0">
+                                    <StackPanel Width="120">
+                                        <TextBlock Text="CARTE : TRAJECTOIRE" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                        <Slider Minimum="0.5" Maximum="5" Value="{Binding MapTrajectoryThickness}" TickFrequency="0.1" IsSnapToTickEnabled="True" Margin="0,4,0,0"/>
+                                        
+                                        <TextBlock Text="CARTE : CURSEUR" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,8,0,4"/>
+                                        <Slider Minimum="2" Maximum="20" Value="{Binding MapCursorSize}" TickFrequency="1" IsSnapToTickEnabled="True" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
                                 <!-- Group 6: Regularity -->
                                 <StackPanel Width="180">
                                     <TextBlock Text="SEUILS RÉGULARITÉ (s)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
@@ -580,14 +593,61 @@
                             <dock:LayoutAnchorable x:Name="MapPane" ContentId="MapPane" Title="Carte &amp; Tracé" CanClose="False" 
                                                    IsVisibleChanged="Pane_IsVisibleChanged">
                                 <Grid Background="#0f172a" ClipToBounds="True">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Barre d'outils Carte -->
+                                    <Grid Grid.Row="0" Margin="10,5">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                            <CheckBox Content="BADGE D'INFOS" IsChecked="{Binding ShowMapTooltip}" Foreground="White" FontWeight="Bold" Margin="0,0,20,0"/>
+                                            <Rectangle Width="1" Height="16" Fill="#444" Margin="0,0,20,0"/>
+                                            
+                                            <TextBlock Text="ROTATION :" Foreground="#94a3b8" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <Slider Minimum="-180" Maximum="180" Value="{Binding MapRotation}" Width="80" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                            <Button Content="Reset" Command="{Binding ResetMapRotationCommand}" Background="Transparent" Foreground="Cyan" FontSize="10" Padding="4,2" Margin="0,0,20,0"/>
+                                            
+                                            <Rectangle Width="1" Height="16" Fill="#444" Margin="0,0,20,0"/>
+                                            
+                                            <TextBlock Text="ZOOM :" Foreground="#94a3b8" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <Slider Minimum="0.5" Maximum="5" Value="{Binding MapZoom}" Width="80" VerticalAlignment="Center"/>
+                                            <Button Content="Reset" Command="{Binding ResetMapZoomCommand}" Background="Transparent" Foreground="Cyan" FontSize="10" Padding="4,2" Margin="0,0,20,0"/>
+
+                                            <Rectangle Width="1" Height="16" Fill="#444" Margin="0,0,20,0"/>
+                                            
+                                            <TextBlock Text="X/Y :" Foreground="#94a3b8" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <Slider Minimum="-500" Maximum="500" Value="{Binding MapPanX}" Width="60" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <Slider Minimum="-500" Maximum="500" Value="{Binding MapPanY}" Width="60" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                            <Button Content="Reset" Command="{Binding ResetMapPanCommand}" Background="Transparent" Foreground="Cyan" FontSize="10" Padding="4,2" Margin="0,0,10,0"/>
+                                        </StackPanel>
+                                    </Grid>
+
                                     <!-- Légende Circuit -->
-                                    <Border Background="#AA000000" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="10" CornerRadius="4" Padding="8,4" Panel.ZIndex="10">
+                                    <Border Grid.Row="1" Background="#AA000000" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="10" CornerRadius="4" Padding="8,4" Panel.ZIndex="10">
                                         <TextBlock Text="{Binding CircuitName, StringFormat='Circuit : {0}'}" Foreground="White" FontSize="12"/>
                                     </Border>
 
                                     <!-- Vue Trace (Scale/Pan géré par Stretch Uniform) -->
-                                    <Viewbox Stretch="Uniform" Margin="20">
-                                        <Grid Width="500" Height="500">
+                                    <Border Grid.Row="1" Background="Transparent"
+                                            MouseWheel="Map_MouseWheel"
+                                            MouseLeftButtonDown="Map_MouseLeftButtonDown"
+                                            MouseLeftButtonUp="Map_MouseLeftButtonUp"
+                                            MouseRightButtonDown="Map_MouseRightButtonDown"
+                                            MouseRightButtonUp="Map_MouseRightButtonUp"
+                                            MouseMove="Map_MouseMove">
+                                        <Viewbox Stretch="Uniform" Margin="20">
+                                            <Viewbox.RenderTransform>
+                                                <TranslateTransform X="{Binding MapPanX}" Y="{Binding MapPanY}"/>
+                                            </Viewbox.RenderTransform>
+                                            <Grid Width="500" Height="500" RenderTransformOrigin="0.5,0.5">
+                                            <Grid.RenderTransform>
+                                                <TransformGroup>
+                                                    <ScaleTransform ScaleX="{Binding MapZoom}" ScaleY="{Binding MapZoom}"/>
+                                                    <RotateTransform Angle="{Binding MapRotation}"/>
+                                                </TransformGroup>
+                                            </Grid.RenderTransform>
+                                            
                                             <!-- 1. Bordure de Piste (Légèrement plus large) -->
                                             <Polyline Points="{Binding TrajectoryPoints}" 
                                                       Stroke="#334155" 
@@ -622,23 +682,27 @@
                                             <!-- 4. Curseur et Info Overlay -->
                                             <Canvas IsHitTestVisible="False">
                                                 <!-- Point Curseur -->
-                                                <Ellipse Width="8" Height="8" Fill="#ef4444" 
+                                                <Ellipse Width="{Binding MapCursorOuterSize}" Height="{Binding MapCursorOuterSize}" Fill="#ef4444" 
                                                          Canvas.Left="{Binding CursorMapX}" 
                                                          Canvas.Top="{Binding CursorMapY}"
-                                                         Margin="-4,-4">
+                                                         Margin="{Binding MapCursorOuterMargin}">
                                                     <Ellipse.Effect>
-                                                        <BlurEffect Radius="2"/>
+                                                        <BlurEffect Radius="{Binding MapCursorBlurRadius}"/>
                                                     </Ellipse.Effect>
                                                 </Ellipse>
-                                                <Ellipse Width="6" Height="6" Fill="White" 
+                                                <Ellipse Width="{Binding MapCursorSize}" Height="{Binding MapCursorSize}" Fill="White" 
                                                          Canvas.Left="{Binding CursorMapX}" 
                                                          Canvas.Top="{Binding CursorMapY}"
-                                                         Margin="-3,-3"/>
+                                                         Margin="{Binding MapCursorMargin}"/>
 
-                                                <!-- Badge d'infos flottant -->
+                                                <!-- Badge d'infos flottant (rotation inversée pour rester droit) -->
                                                 <Border Canvas.Left="{Binding CursorMapX}" Canvas.Top="{Binding CursorMapY}" 
                                                         Visibility="{Binding ShowMapTooltip, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                                        Margin="12,-40" Background="#CC1a1a1a" CornerRadius="4" Padding="8,4" BorderBrush="#444" BorderThickness="1">
+                                                        Margin="12,-40" Background="#CC1a1a1a" CornerRadius="4" Padding="8,4" BorderBrush="#444" BorderThickness="1"
+                                                        RenderTransformOrigin="0,1">
+                                                    <Border.RenderTransform>
+                                                        <RotateTransform Angle="{Binding MapRotation, Converter={StaticResource InvertRotationConverter}}"/>
+                                                    </Border.RenderTransform>
                                                     <StackPanel Orientation="Horizontal">
                                                         <StackPanel Margin="0,0,10,0">
                                                             <TextBlock Text="VITESSE" FontSize="8" Foreground="#94a3b8" FontWeight="Bold"/>
@@ -660,6 +724,7 @@
                                             </Canvas>
                                         </Grid>
                                     </Viewbox>
+                                </Border>
                                 </Grid>
                             </dock:LayoutAnchorable>
                         </dock:LayoutAnchorablePane>
@@ -691,8 +756,6 @@
                                             <CheckBox Content="DELTA" IsChecked="{Binding ShowDeltaTime}" Foreground="#f59e0b" FontWeight="Bold" Margin="0,0,10,0"/>
                                             <Rectangle Width="1" Height="16" Fill="#444" Margin="0,0,15,0"/>
                                             <CheckBox Content="RÉFÉRENCE" IsChecked="{Binding ShowReference}" Foreground="White" FontWeight="Bold" Margin="0,0,15,0"/>
-                                            <Rectangle Width="1" Height="16" Fill="#444" Margin="0,0,15,0"/>
-                                            <CheckBox Content="BADGE CARTE" IsChecked="{Binding ShowMapTooltip}" Foreground="White" Margin="0,0,15,0"/>
                                         </StackPanel>
 
                                         <ItemsControl Grid.Column="1" ItemsSource="{Binding LegendEntries}">

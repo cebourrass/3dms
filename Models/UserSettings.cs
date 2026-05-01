@@ -50,6 +50,10 @@ namespace Analyzer.Models
         // Fréquence d'interpolation (ms)
         public double InterpolationStepMs { get; set; } = 20.0;
 
+        // Paramètres de la carte
+        public double MapTrajectoryThickness { get; set; } = 1.2;
+        public double MapCursorSize { get; set; } = 6.0;
+
         // Seuils de régularité
         public double RegularityThresholdExcellent { get; set; } = 0.10;
         public double RegularityThresholdMedium { get; set; } = 0.30;
