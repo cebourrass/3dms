@@ -320,6 +320,19 @@
                                     </StackPanel>
                                 </Border>
 
+                                <!-- Group 5.5: Global Processing -->
+                                <Border BorderBrush="#334155" BorderThickness="0,0,1,0" Margin="0,0,15,0" Padding="0,0,15,0">
+                                    <StackPanel Width="120">
+                                        <TextBlock Text="RÉSOLUTION" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                        <ComboBox ItemsSource="{Binding InterpolationOptions}" 
+                                                  DisplayMemberPath="Name" 
+                                                  SelectedValuePath="StepMs" 
+                                                  SelectedValue="{Binding InterpolationStepMs}" 
+                                                  Height="28" Padding="8,0" ui:ControlHelper.CornerRadius="4" 
+                                                  FontSize="10" HorizontalAlignment="Stretch" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
                                 <!-- Group 6: Regularity -->
                                 <StackPanel Width="180">
                                     <TextBlock Text="SEUILS RÉGULARITÉ (s)" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>

@@ -47,6 +47,9 @@ namespace Analyzer.Models
         public int AngleSmoothing { get; set; } = 3;
         public int AccelSmoothing { get; set; } = 3;
 
+        // Fréquence d'interpolation (ms)
+        public double InterpolationStepMs { get; set; } = 20.0;
+
         // Seuils de régularité
         public double RegularityThresholdExcellent { get; set; } = 0.10;
         public double RegularityThresholdMedium { get; set; } = 0.30;

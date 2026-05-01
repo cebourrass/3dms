@@ -164,6 +164,23 @@ namespace Analyzer.ViewModels
             new SmoothingOption { Name = "Très fort", Value = 8 }
         };
 
+        public class InterpolationOption
+        {
+            public string Name { get; set; } = string.Empty;
+            public double StepMs { get; set; }
+        }
+
+        public List<InterpolationOption> InterpolationOptions { get; } = new()
+        {
+            new InterpolationOption { Name = "10 Hz (100ms)", StepMs = 100.0 },
+            new InterpolationOption { Name = "25 Hz (40ms)", StepMs = 40.0 },
+            new InterpolationOption { Name = "50 Hz (20ms)", StepMs = 20.0 },
+            new InterpolationOption { Name = "100 Hz (10ms)", StepMs = 10.0 }
+        };
+
+        private double _interpolationStepMs;
+        public double InterpolationStepMs { get => _interpolationStepMs; set { if (SetProperty(ref _interpolationStepMs, value)) UpdateTelemetryCharts(); } }
+
         private bool _showDeltaTime;
         public bool ShowDeltaTime { get => _showDeltaTime; set { if (SetProperty(ref _showDeltaTime, value)) UpdateTelemetryCharts(); } }
 
@@ -495,6 +512,17 @@ namespace Analyzer.ViewModels
                 Labeler = value => Math.Round(value, 1).ToString(),
                 Position = LiveChartsCore.Measure.AxisPosition.End,
                 ShowSeparatorLines = false
+            },
+            new Axis // Axe 2 (Droite ext) : Delta Time
+            {
+                Name = "Δ Time (s)",
+                NamePaint = new SolidColorPaint(new SKColor(148, 163, 184)),
+                LabelsPaint = new SolidColorPaint(new SKColor(100, 116, 139)),
+                TextSize = 9,
+                Labeler = value => value >= 0 ? $"+{value:F2}s" : $"{value:F2}s",
+                Position = LiveChartsCore.Measure.AxisPosition.End,
+                ShowSeparatorLines = false,
+                IsVisible = false // Masqué par défaut
             }
         };
 
@@ -555,6 +583,7 @@ namespace Analyzer.ViewModels
             _speedSmoothing = _settings.SpeedSmoothing;
             _angleSmoothing = _settings.AngleSmoothing;
             _accelSmoothing = _settings.AccelSmoothing;
+            _interpolationStepMs = _settings.InterpolationStepMs > 0 ? _settings.InterpolationStepMs : 20.0;
 
             _showDeltaTime = false; // Par défaut éteint
             
@@ -623,6 +652,7 @@ namespace Analyzer.ViewModels
             _settings.SpeedSmoothing = SpeedSmoothing;
             _settings.AngleSmoothing = AngleSmoothing;
             _settings.AccelSmoothing = AccelSmoothing;
+            _settings.InterpolationStepMs = InterpolationStepMs;
 
             _settings.LastFilePath = CurrentSession?.FilePath;
             _settings.SelectedPilotProfileName = SelectedPilotProfile?.Name;
@@ -1174,7 +1204,7 @@ namespace Analyzer.ViewModels
             var interpolated = new List<TelemetryPoint>();
             double startTime = rawPoints.First().Time;
             double endTime = rawPoints.Last().Time;
-            double step = 20.0;
+            double step = InterpolationStepMs;
 
             for (double t = startTime; t <= endTime; t += step)
             {
@@ -1410,19 +1440,17 @@ namespace Analyzer.ViewModels
             
             if (ShowDeltaTime)
             {
-                // MODE DELTA TIME (Superposition sur l'axe de droite)
+                // MODE DELTA TIME (Superposition sur l'axe de droite ext)
                 UpdateDeltaView(seriesList);
                 
-                YAxes[1].IsVisible = true;
-                YAxes[1].Name = "Δ Time (s)";
-                YAxes[1].Labeler = value => value >= 0 ? $"+{value:F2}s" : $"{value:F2}s";
+                YAxes[2].IsVisible = true;
                 
                 // Ligne de référence à zéro pour le Delta
                 sectionsList.Add(new RectangularSection
                 {
                     Yi = 0, Yj = 0,
                     Stroke = new SolidColorPaint(SKColors.White.WithAlpha(100), 1.5f),
-                    ScalesYAt = 1
+                    ScalesYAt = 2
                 });
 
                 // Calcul des bornes du Delta pour une graduation propre
@@ -1437,18 +1465,18 @@ namespace Analyzer.ViewModels
                     if (range < 0.1) range = 0.1; // Minimum de 0.1s de plage
                     
                     double margin = range * 0.1;
-                    YAxes[1].MaxLimit = maxD + margin;
-                    YAxes[1].MinLimit = minD - margin;
+                    YAxes[2].MaxLimit = maxD + margin;
+                    YAxes[2].MinLimit = minD - margin;
                 }
                 else
                 {
-                    YAxes[1].MinLimit = null;
-                    YAxes[1].MaxLimit = null;
+                    YAxes[2].MinLimit = null;
+                    YAxes[2].MaxLimit = null;
                 }
             }
             else
             {
-                YAxes[1].IsVisible = false;
+                YAxes[2].IsVisible = false;
             }
 
             Sections = sectionsList.ToArray();
@@ -1609,16 +1637,15 @@ namespace Analyzer.ViewModels
                 deltaPoints.Add(new ObservablePoint(d, t2 - t1));
             }
 
-            var skColor = SKColor.Parse(colorHex);
             seriesList.Add(new LineSeries<ObservablePoint>
             {
                 Values = deltaPoints,
-                Name = $"Delta T{lap2.Number} vs T{lap1.Number}",
-                Stroke = new SolidColorPaint(skColor, 3),
-                Fill = new SolidColorPaint(skColor.WithAlpha(25)),
+                Name = $"Delta (vs {lap2.Number})",
+                Stroke = new SolidColorPaint(SKColor.Parse(colorHex), 2),
                 GeometrySize = 0,
-                LineSmoothness = 0.5,
-                ScalesYAt = 1 // Axe de droite
+                Fill = new SolidColorPaint(SKColor.Parse(colorHex).WithAlpha(30)), // Zone sous la courbe plus discrète
+                LineSmoothness = 0, // Pas de lissage sur le delta brut
+                ScalesYAt = 2 // 3ème axe (Delta Time)
             });
         }
 
@@ -1633,25 +1660,47 @@ namespace Analyzer.ViewModels
 
         private double GetTimeAtDistance(List<TelemetryPoint> points, double relativeDist)
         {
-            if (points.Count < 2) return 0;
+            if (points == null || points.Count < 2) return 0;
             double startDist = points[0].Distance;
+            double targetDist = relativeDist + startDist;
             double startTime = points[0].Time;
 
-            for (int i = 0; i < points.Count - 1; i++)
-            {
-                double d1 = points[i].Distance - startDist;
-                double d2 = points[i+1].Distance - startDist;
+            if (targetDist <= startDist) return 0;
+            if (targetDist >= points.Last().Distance) return (points.Last().Time - startTime) / 1000.0;
 
-                if (relativeDist >= d1 && relativeDist <= d2)
-                {
-                    double distRange = d2 - d1;
-                    if (distRange <= 0) return (points[i].Time - startTime) / 1000.0;
-                    double fraction = (relativeDist - d1) / distRange;
-                    return (points[i].Time - startTime + (points[i+1].Time - points[i].Time) * fraction) / 1000.0;
-                }
+            int low = 0;
+            int high = points.Count - 1;
+
+            while (low <= high)
+            {
+                int mid = low + (high - low) / 2;
+                if (points[mid].Distance == targetDist)
+                    return (points[mid].Time - startTime) / 1000.0;
+                if (points[mid].Distance < targetDist)
+                    low = mid + 1;
+                else
+                    high = mid - 1;
             }
-            return (points.Last().Time - startTime) / 1000.0;
+
+            if (high < 0) high = 0;
+            if (low >= points.Count) low = points.Count - 1;
+
+            if (high == low) return (points[high].Time - startTime) / 1000.0;
+
+            double d1 = points[high].Distance;
+            double d2 = points[low].Distance;
+            double distRange = d2 - d1;
+
+            if (distRange <= 0) return (points[high].Time - startTime) / 1000.0;
+
+            double fraction = (targetDist - d1) / distRange;
+            double t1 = points[high].Time;
+            double t2 = points[low].Time;
+
+            return (t1 - startTime + (t2 - t1) * fraction) / 1000.0;
         }
+
+        private System.Windows.Threading.DispatcherTimer? _cursorDebounceTimer;
 
         public void UpdateCursor(double timeOrDist, bool force = false)
         {
@@ -1703,7 +1752,31 @@ namespace Analyzer.ViewModels
                 }
             }
 
-            // 2. Mettre à jour CursorLaps pour TOUS les tours comparés (Réutilisation des objets pour la fluidité)
+            // 2. Mettre à jour la position de la barre rouge (immédiat pour la fluidité)
+            if (Sections != null && Sections.Length > 0)
+            {
+                var cursorSection = Sections.Last();
+                cursorSection.Xi = timeOrDist;
+                cursorSection.Xj = timeOrDist;
+            }
+
+            // --- DEBOUNCE POUR LE RESTE (Secondaire) ---
+            if (_cursorDebounceTimer == null)
+            {
+                _cursorDebounceTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(40) };
+                _cursorDebounceTimer.Tick += (s, e) =>
+                {
+                    _cursorDebounceTimer.Stop();
+                    UpdateCursorSecondary(CurrentX, _xAxisValueLabel == "DISTANCE");
+                };
+            }
+            _cursorDebounceTimer.Stop();
+            _cursorDebounceTimer.Start();
+        }
+
+        private void UpdateCursorSecondary(double timeOrDist, bool useDistance)
+        {
+            // 3. Mettre à jour CursorLaps pour TOUS les tours comparés (Réutilisation des objets pour la fluidité)
             var allVisible = new List<LapData>();
             if (ShowReference && ReferenceLap != null) allVisible.Add(ReferenceLap);
             if (SelectedLap != null && !allVisible.Contains(SelectedLap)) allVisible.Add(SelectedLap);
@@ -1766,7 +1839,7 @@ namespace Analyzer.ViewModels
             }
             while (CursorLaps.Count > index) CursorLaps.RemoveAt(CursorLaps.Count - 1);
 
-            // 3. Mettre à jour le Delta en temps réel (si activé)
+            // 4. Mettre à jour le Delta en temps réel (si activé)
             if (useDistance && ShowDeltaTime)
             {
                 GetDeltaLaps(out var lap1, out var lap2);
@@ -1794,14 +1867,6 @@ namespace Analyzer.ViewModels
                 else CurrentDelta = 0;
             }
             else CurrentDelta = 0;
-
-            // 3. Mettre à jour la position de la barre rouge
-            if (Sections != null && Sections.Length > 0)
-            {
-                var cursorSection = Sections.Last();
-                cursorSection.Xi = timeOrDist;
-                cursorSection.Xj = timeOrDist;
-            }
         }
 
         private TelemetryPoint? FindClosestPoint(List<TelemetryPoint> points, double target, bool useDistance, double startDist = 0)
