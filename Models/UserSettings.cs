@@ -22,6 +22,7 @@ namespace Analyzer.Models
         public bool ShowAccel { get; set; } = false;
         public bool ShowDecel { get; set; } = false;
         public bool ShowReference { get; set; } = true;
+        public bool ShowCorruptionWarning { get; set; } = false;
 
         // Styles des courbes
         public string SpeedColor { get; set; } = "#10b981";

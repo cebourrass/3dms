@@ -613,6 +613,19 @@ namespace Analyzer.ViewModels
         private bool _isExplorerVisible = true;
         public bool IsExplorerVisible { get => _isExplorerVisible; set => SetProperty(ref _isExplorerVisible, value); }
 
+        private bool _showCorruptionWarning = false;
+        public bool ShowCorruptionWarning 
+        { 
+            get => _showCorruptionWarning; 
+            set 
+            { 
+                if (SetProperty(ref _showCorruptionWarning, value))
+                    OnPropertyChanged(nameof(IsCorruptionBadgeVisible));
+            } 
+        }
+
+        public bool IsCorruptionBadgeVisible => ShowCorruptionWarning && (CurrentSession?.HasCorruptedData ?? false);
+
         public MainViewModel()
         {
             _settings = _settingsService.LoadSettings();
@@ -624,6 +637,7 @@ namespace Analyzer.ViewModels
             _showAccel = _settings.ShowAccel;
             _showDecel = _settings.ShowDecel;
             _showReference = _settings.ShowReference;
+            _showCorruptionWarning = _settings.ShowCorruptionWarning;
 
             _speedColor = _settings.SpeedColor ?? "#10b981";
             _speedThickness = _settings.SpeedThickness;
@@ -694,6 +708,7 @@ namespace Analyzer.ViewModels
             _settings.ShowAccel = ShowAccel;
             _settings.ShowDecel = ShowDecel;
             _settings.ShowReference = ShowReference;
+            _settings.ShowCorruptionWarning = ShowCorruptionWarning;
 
             _settings.SpeedColor = SpeedColor;
             _settings.SpeedThickness = SpeedThickness;
@@ -859,7 +874,7 @@ namespace Analyzer.ViewModels
             {
                 if (SetProperty(ref _currentSession, value))
                 {
-                    
+                    OnPropertyChanged(nameof(IsCorruptionBadgeVisible));
                     OnPropertyChanged(nameof(IsP1Visible));
                     OnPropertyChanged(nameof(IsP2Visible));
                     OnPropertyChanged(nameof(IsP3Visible));
@@ -961,7 +976,9 @@ namespace Analyzer.ViewModels
                 Title = fileName,
                 FilePath = filePath,
                 AllPoints = points,
-                Date = ParseDateFromFileName(fileName)
+                Date = ParseDateFromFileName(fileName),
+                HasCorruptedData = _readerService.LastCorruptedPointsCount > 0,
+                CorruptedPointsCount = _readerService.LastCorruptedPointsCount
             };
 
             SessionTitle = session.Title;
@@ -1257,7 +1274,7 @@ namespace Analyzer.ViewModels
                 int gEnd = Math.Min(rawPoints.Count - 1, i + gWindow / 2);
                 pt.Acceleration = (float)rawPoints.Skip(gStart).Take(gEnd - gStart + 1).Average(p => (double)p.Acceleration);
                 
-                // Coordonnées et Distance (pas de lissage ou fixe pour garder la cohérence spatiale)
+                // Coordonnées et Distance
                 pt.Distance = rawPoints[i].Distance;
                 pt.Latitude = rawPoints[i].Latitude;
                 pt.Longitude = rawPoints[i].Longitude;
@@ -1269,30 +1286,57 @@ namespace Analyzer.ViewModels
             double startTime = rawPoints.First().Time;
             double endTime = rawPoints.Last().Time;
             double step = InterpolationStepMs;
+            double duration = endTime - startTime;
 
+            // Sécurité : si la durée est absurde (ex: > 30 min pour un tour), on limite l'interpolation
+            if (duration > 1800000 || duration < 0) 
+            {
+                // Retourner les points lissés sans interpolation pour éviter le freeze/OOM
+                return smoothed;
+            }
+
+            // Optimisation : utiliser un index pour éviter de reparcourir la liste (O(N) -> O(1) par itération)
+            int p1Idx = 0;
             for (double t = startTime; t <= endTime; t += step)
             {
-                var p1 = smoothed.LastOrDefault(p => p.Time <= t);
-                var p2 = smoothed.FirstOrDefault(p => p.Time > t);
+                // Trouver le segment [p1, p2] contenant t
+                while (p1Idx < smoothed.Count - 1 && smoothed[p1Idx + 1].Time <= t)
+                {
+                    p1Idx++;
+                }
 
-                if (p1 != null && p2 != null)
+                if (p1Idx < smoothed.Count - 1)
                 {
-                    float ratio = (float)((t - p1.Time) / (p2.Time - p1.Time));
-                    interpolated.Add(new TelemetryPoint
+                    var p1 = smoothed[p1Idx];
+                    var p2 = smoothed[p1Idx + 1];
+                    
+                    double timeGap = p2.Time - p1.Time;
+                    if (timeGap > 0)
                     {
-                        Time = (uint)t,
-                        Distance = p1.Distance + (p2.Distance - p1.Distance) * ratio,
-                        Speed = p1.Speed + (p2.Speed - p1.Speed) * ratio,
-                        LeanAngle = p1.LeanAngle + (p2.LeanAngle - p1.LeanAngle) * ratio,
-                        Acceleration = p1.Acceleration + (p2.Acceleration - p1.Acceleration) * ratio,
-                        Latitude = p1.Latitude + (p2.Latitude - p1.Latitude) * ratio,
-                        Longitude = p1.Longitude + (p2.Longitude - p1.Longitude) * ratio
-                    });
+                        float ratio = (float)((t - p1.Time) / timeGap);
+                        interpolated.Add(new TelemetryPoint
+                        {
+                            Time = (uint)t,
+                            Distance = p1.Distance + (p2.Distance - p1.Distance) * ratio,
+                            Speed = p1.Speed + (p2.Speed - p1.Speed) * ratio,
+                            LeanAngle = p1.LeanAngle + (p2.LeanAngle - p1.LeanAngle) * ratio,
+                            Acceleration = p1.Acceleration + (p2.Acceleration - p1.Acceleration) * ratio,
+                            Latitude = p1.Latitude + (p2.Latitude - p1.Latitude) * ratio,
+                            Longitude = p1.Longitude + (p2.Longitude - p1.Longitude) * ratio
+                        });
+                    }
+                    else
+                    {
+                        interpolated.Add(p1);
+                    }
                 }
-                else if (p1 != null)
+                else
                 {
-                    interpolated.Add(p1);
+                    interpolated.Add(smoothed.Last());
                 }
+
+                // Sécurité supplémentaire : limiter le nombre de points interpolés (max 200,000)
+                if (interpolated.Count > 200000) break;
             }
 
             return interpolated;

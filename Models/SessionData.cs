@@ -22,6 +22,10 @@ namespace Analyzer.Models
         public TrackMap? CircuitMap { get; set; }
         public string MapFilePath { get; set; } = string.Empty;
         public int PartialCount { get; set; }
+        
+        // Indicateurs de corruption
+        public bool HasCorruptedData { get; set; }
+        public int CorruptedPointsCount { get; set; }
 
         // Records de la session
         public string BestLapTime { get; set; } = "--:--.--";
