@@ -276,6 +276,21 @@
                                     </StackPanel>
                                 </Border>
 
+                                <!-- Group 3.5: Accel Gradient Map Settings -->
+                                <Border BorderBrush="#334155" BorderThickness="0,0,1,0" Margin="0,0,15,0" Padding="0,0,15,0">
+                                    <StackPanel Width="150">
+                                        <TextBlock Text="MAP COLORS" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                        
+                                        <TextBlock Text="{DynamicResource LblAccelRange}" FontSize="8" Foreground="#94a3b8"/>
+                                        <ui:NumberBox Value="{Binding AccelGradientRange}" 
+                                                      SmallChange="0.1" LargeChange="0.5" SpinButtonPlacementMode="Compact"
+                                                      Minimum="0.1" Maximum="5" Height="28" Margin="0,2,0,8"/>
+                                        
+                                        <CheckBox Content="{DynamicResource ChkAutoAccelScaling}" IsChecked="{Binding AutoAccelGradientScaling}" 
+                                                  Foreground="White" FontSize="9" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+
                                 <!-- Group 4: Reference -->
                                 <Border BorderBrush="#334155" BorderThickness="0,0,1,0" Margin="0,0,15,0" Padding="0,0,15,0">
                                     <StackPanel Width="120">
@@ -642,7 +657,9 @@
                                                  
                                                  <TextBlock Text="{DynamicResource LblPan}" Foreground="#94a3b8" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                                  <Slider Minimum="-1000" Maximum="1000" Value="{Binding MapPanX}" Width="60" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                                 <Slider Minimum="-1000" Maximum="1000" Value="{Binding MapPanY}" Width="60" VerticalAlignment="Center"/>
+                                                 <Slider Minimum="-1000" Maximum="1000" Value="{Binding MapPanY}" Width="60" VerticalAlignment="Center" Margin="0,0,20,0"/>
+
+                                                 <CheckBox Content="{DynamicResource ChkShowAccelGradient}" IsChecked="{Binding ShowAccelMapGradient}" Foreground="White" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
                                              </StackPanel>
                                         </Grid>
                                     </Border>

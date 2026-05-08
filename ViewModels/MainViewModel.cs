@@ -108,6 +108,9 @@ namespace Analyzer.ViewModels
         private bool _showReference = true;
         public bool ShowReference { get => _showReference; set { if (SetProperty(ref _showReference, value)) UpdateTelemetryCharts(); } }
 
+        private bool _showAccelMapGradient = false;
+        public bool ShowAccelMapGradient { get => _showAccelMapGradient; set { if (SetProperty(ref _showAccelMapGradient, value)) UpdateTrajectoryUI(CurrentMap); } }
+
         public List<LapData> ComparisonLaps { get; set; } = new();
 
         // Paramètres de style (Onglet Paramètres)
@@ -140,6 +143,12 @@ namespace Analyzer.ViewModels
         public string RefColor { get => _refColor; set { if (SetProperty(ref _refColor, value)) UpdateTelemetryCharts(); } }
         private float _refThickness = 1.2f;
         public float RefThickness { get => _refThickness; set { if (SetProperty(ref _refThickness, value)) UpdateTelemetryCharts(); } }
+
+        private double _accelGradientRange = 1.2;
+        public double AccelGradientRange { get => _accelGradientRange; set { if (SetProperty(ref _accelGradientRange, value)) UpdateTrajectoryUI(CurrentMap); } }
+
+        private bool _autoAccelGradientScaling = false;
+        public bool AutoAccelGradientScaling { get => _autoAccelGradientScaling; set { if (SetProperty(ref _autoAccelGradientScaling, value)) UpdateTrajectoryUI(CurrentMap); } }
 
         private int _speedSmoothing;
         public int SpeedSmoothing { get => _speedSmoothing; set { if (SetProperty(ref _speedSmoothing, value)) UpdateTelemetryCharts(); } }
@@ -682,6 +691,7 @@ namespace Analyzer.ViewModels
             _showAccel = _settings.ShowAccel;
             _showDecel = _settings.ShowDecel;
             _showReference = _settings.ShowReference;
+            _showAccelMapGradient = _settings.ShowAccelMapGradient;
             _showCorruptionWarning = _settings.ShowCorruptionWarning;
 
             _speedColor = _settings.SpeedColor ?? "#10b981";
@@ -706,6 +716,9 @@ namespace Analyzer.ViewModels
             _interpolationStepMs = _settings.InterpolationStepMs > 0 ? _settings.InterpolationStepMs : 20.0;
             _mapTrajectoryThickness = _settings.MapTrajectoryThickness > 0 ? _settings.MapTrajectoryThickness : 1.2;
             _mapCursorSize = _settings.MapCursorSize > 0 ? _settings.MapCursorSize : 6.0;
+
+            _accelGradientRange = _settings.AccelGradientRange > 0 ? _settings.AccelGradientRange : 1.2;
+            _autoAccelGradientScaling = _settings.AutoAccelGradientScaling;
 
             _showDeltaTime = false; // Par défaut éteint
             
@@ -754,6 +767,9 @@ namespace Analyzer.ViewModels
             _settings.ShowAccel = ShowAccel;
             _settings.ShowDecel = ShowDecel;
             _settings.ShowReference = ShowReference;
+            _settings.ShowAccelMapGradient = ShowAccelMapGradient;
+            _settings.AccelGradientRange = AccelGradientRange;
+            _settings.AutoAccelGradientScaling = AutoAccelGradientScaling;
             _settings.ShowCorruptionWarning = ShowCorruptionWarning;
 
             _settings.SpeedColor = SpeedColor;
@@ -2128,35 +2144,82 @@ namespace Analyzer.ViewModels
                     lap.TelemetryPoints = points;
                 }
 
-                var projPoints = new System.Windows.Media.PointCollection();
-                foreach (var p in points)
+                if (ShowAccelMapGradient)
                 {
-                    double x = (p.Longitude - _mapMinLon) * _mapRatio * _mapScale + (MapCanvasSize * 0.05);
-                    double y = MapCanvasSize - ((p.Latitude - _mapMinLat) * _mapScale + (MapCanvasSize * 0.05));
-                    projPoints.Add(new System.Windows.Point(x, y));
-                }
+                    // --- MODE DÉGRADÉ D'ACCÉLÉRATION ---
+                    
+                    // Déterminer les limites pour ce tour
+                    double limitPos = AccelGradientRange; // Freinage
+                    double limitNeg = AccelGradientRange; // Accélération
+                    
+                    if (AutoAccelGradientScaling)
+                    {
+                        var allAccels = points.Select(p => p.Acceleration).ToList();
+                        limitPos = (double)allAccels.Where(a => a > 0).DefaultIfEmpty(0.1f).Max();
+                        limitNeg = (double)Math.Abs(allAccels.Where(a => a < 0).DefaultIfEmpty(-0.1f).Min());
+                        
+                        // Sécurité minimum pour éviter division par zero
+                        if (limitPos < 0.1) limitPos = 0.1;
+                        if (limitNeg < 0.1) limitNeg = 0.1;
+                    }
 
-                // Déterminer la couleur
-                string color = "#FFFFFF";
-                if (lap == SelectedLap)
-                {
-                    color = SpeedColor;
+                    // Optimisation : un segment tous les 'step' points pour fluidifier l'affichage
+                    int step = 3; 
+                    for (int i = 0; i < points.Count - step; i += step)
+                    {
+                        var p1 = points[i];
+                        var p2 = points[i + step];
+                        
+                        var segPoints = new System.Windows.Media.PointCollection();
+                        segPoints.Add(new System.Windows.Point(
+                            (p1.Longitude - _mapMinLon) * _mapRatio * _mapScale + (MapCanvasSize * 0.05),
+                            MapCanvasSize - ((p1.Latitude - _mapMinLat) * _mapScale + (MapCanvasSize * 0.05))
+                        ));
+                        segPoints.Add(new System.Windows.Point(
+                            (p2.Longitude - _mapMinLon) * _mapRatio * _mapScale + (MapCanvasSize * 0.05),
+                            MapCanvasSize - ((p2.Latitude - _mapMinLat) * _mapScale + (MapCanvasSize * 0.05))
+                        ));
+
+                        LapTrajectories.Add(new LapTrajectory
+                        {
+                            Color = GetColorForAccel(p2.Acceleration, limitPos, limitNeg),
+                            Points = segPoints,
+                            Thickness = lap == SelectedLap ? (MapTrajectoryThickness * 1.5) : MapTrajectoryThickness,
+                            Opacity = lap == SelectedLap ? 1.0f : 0.6f
+                        });
+                    }
                 }
                 else
                 {
-                    // Recherche sécurisée dans la légende
-                    var lapLabel = $"T{lap.Number}";
-                    var legend = LegendEntries.FirstOrDefault(le => le.Label != null && le.Label.Contains(lapLabel));
-                    color = legend?.Color ?? "#6366f1";
-                }
+                    // --- MODE STANDARD (Une Polyline unique par tour) ---
+                    var projPoints = new System.Windows.Media.PointCollection();
+                    foreach (var p in points)
+                    {
+                        double x = (p.Longitude - _mapMinLon) * _mapRatio * _mapScale + (MapCanvasSize * 0.05);
+                        double y = MapCanvasSize - ((p.Latitude - _mapMinLat) * _mapScale + (MapCanvasSize * 0.05));
+                        projPoints.Add(new System.Windows.Point(x, y));
+                    }
 
-                LapTrajectories.Add(new LapTrajectory
-                {
-                    Color = color,
-                    Points = projPoints,
-                    Thickness = lap == SelectedLap ? MapTrajectoryThickness : (MapTrajectoryThickness / 2.0),
-                    Opacity = 1.0f
-                });
+                    string color = "#FFFFFF";
+                    if (lap == SelectedLap)
+                    {
+                        color = SpeedColor;
+                    }
+                    else
+                    {
+                        var lapLabel = $"T{lap.Number}";
+                        var legend = LegendEntries.FirstOrDefault(le => le.Label != null && le.Label.Contains(lapLabel));
+                        color = legend?.Color ?? "#6366f1";
+                    }
+
+                    LapTrajectories.Add(new LapTrajectory
+                    {
+                        Color = color,
+                        Points = projPoints,
+                        Thickness = lap == SelectedLap ? MapTrajectoryThickness : (MapTrajectoryThickness / 2.0),
+                        Opacity = 1.0f
+                    });
+                }
             }
         }
 
@@ -2197,6 +2260,39 @@ namespace Analyzer.ViewModels
                 .Normalize(System.Text.NormalizationForm.FormC)
                 .ToLower();
         }
+        private string GetColorForAccel(double accel, double limitPos, double limitNeg)
+        {
+            // Accel > 0 dans le log = Freinage (Rouge)
+            // Accel < 0 dans le log = Accélération (Vert)
+            
+            string neutral = "#94a3b8"; // Gris bleuâtre
+            string green = "#39FF14";   // Neon Green Fluo
+            string red = "#FF3131";     // Neon Red Fluo
+            
+            if (accel < 0) // Accélération
+            {
+                double val = Math.Clamp(Math.Abs(accel) / limitNeg, 0, 1.0);
+                return LerpColor(neutral, green, val);
+            }
+            else // Freinage
+            {
+                double val = Math.Clamp(accel / limitPos, 0, 1.0);
+                return LerpColor(neutral, red, val);
+            }
+        }
+
+        private string LerpColor(string colorStart, string colorEnd, double amount)
+        {
+            var start = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(colorStart);
+            var end = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(colorEnd);
+            
+            byte r = (byte)(start.R + (end.R - start.R) * amount);
+            byte g = (byte)(start.G + (end.G - start.G) * amount);
+            byte b = (byte)(start.B + (end.B - start.B) * amount);
+            
+            return $"#{r:X2}{g:X2}{b:X2}";
+        }
+
         private double ParseTimeToMs(string timeStr)
         {
             if (string.IsNullOrEmpty(timeStr) || timeStr == "-") return 0;

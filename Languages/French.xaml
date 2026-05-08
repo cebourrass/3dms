@@ -73,6 +73,7 @@
     <sys:String x:Key="LblRotation">ROTATION :</sys:String>
     <sys:String x:Key="LblZoom">ZOOM :</sys:String>
     <sys:String x:Key="LblPan">X/Y :</sys:String>
+    <sys:String x:Key="ChkShowAccelGradient">COULEURS ACCEL</sys:String>
     
     <!-- Charts Legend -->
     <sys:String x:Key="LegSpeed">Vitesse</sys:String>
@@ -90,4 +91,7 @@
     <sys:String x:Key="AxisDelta">Δ Temps (s)</sys:String>
     <sys:String x:Key="LblBottomTime">TEMPS</sys:String>
 
+    <!-- Paramètres : Dégradé Accel -->
+    <sys:String x:Key="LblAccelRange">Plage Couleurs Accel (G) :</sys:String>
+    <sys:String x:Key="ChkAutoAccelScaling">Échelle Auto (Min/Max)</sys:String>
 </ResourceDictionary>

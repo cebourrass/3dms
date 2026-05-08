@@ -80,7 +80,8 @@
     <sys:String x:Key="ChkInfoBadge">INFO BADGE</sys:String>
     <sys:String x:Key="LblRotation">ROTATION:</sys:String>
     <sys:String x:Key="LblZoom">ZOOM:</sys:String>
-    <sys:String x:Key="LblPan">X/Y:</sys:String>
+    <sys:String x:Key="LblPan">X/Y :</sys:String>
+    <sys:String x:Key="ChkShowAccelGradient">ACCEL COLORS</sys:String>
     
     <!-- Charts Legend -->
     <sys:String x:Key="LegSpeed">Speed</sys:String>
@@ -97,5 +98,8 @@
     <sys:String x:Key="AxisAngle">Angle (°) / G</sys:String>
     <sys:String x:Key="AxisDelta">Δ Time (s)</sys:String>
     <sys:String x:Key="LblBottomTime">TIME</sys:String>
-    
+
+    <!-- Settings: Accel Gradient -->
+    <sys:String x:Key="LblAccelRange">Accel Color Range (G):</sys:String>
+    <sys:String x:Key="ChkAutoAccelScaling">Auto-scale Colors (Min/Max)</sys:String>
 </ResourceDictionary>
