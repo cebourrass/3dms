@@ -248,6 +248,47 @@ namespace Analyzer.ViewModels
             MapPanY = 0;
         }
 
+        private string _currentLanguage = "French";
+        public string CurrentLanguage
+        {
+            get => _currentLanguage;
+            set
+            {
+                if (SetProperty(ref _currentLanguage, value))
+                {
+                    SwitchLanguage(value);
+                    if (_settings != null) _settings.Language = value;
+                }
+            }
+        }
+
+        public List<string> AvailableLanguages { get; } = new() { "French", "English" };
+
+        private void SwitchLanguage(string lang)
+        {
+            var app = System.Windows.Application.Current;
+            if (app == null) return;
+
+            // Mettre à jour la culture du thread
+            var culture = new System.Globalization.CultureInfo(lang == "French" ? "fr-FR" : "en-US");
+            System.Threading.Thread.CurrentThread.CurrentCulture = culture;
+            System.Threading.Thread.CurrentThread.CurrentUICulture = culture;
+
+            // Retirer l'ancien dictionnaire de langue
+            var oldDict = app.Resources.MergedDictionaries
+                .FirstOrDefault(d => d.Source != null && (d.Source.OriginalString.Contains("French.xaml") || d.Source.OriginalString.Contains("English.xaml")));
+            
+            if (oldDict != null) app.Resources.MergedDictionaries.Remove(oldDict);
+
+            // Ajouter le nouveau
+            var newDict = new System.Windows.ResourceDictionary();
+            newDict.Source = new Uri($"Languages/{lang}.xaml", UriKind.Relative);
+            app.Resources.MergedDictionaries.Add(newDict);
+
+            // Forcer la mise à jour des axes
+            UpdateTelemetryCharts();
+        }
+
         private double _mapTrajectoryThickness = 1.2;
         public double MapTrajectoryThickness
         {
@@ -545,7 +586,7 @@ namespace Analyzer.ViewModels
         {
             new Axis
             {
-                Name = "Temps (min:sec)",
+                Name = "Time (min:sec)", // Will be updated in UpdateTelemetryCharts
                 NamePaint = new SolidColorPaint(new SKColor(148, 163, 184)),
                 Labeler = value => TimeSpan.FromSeconds(value).ToString(@"mm\:ss"),
                 LabelsPaint = new SolidColorPaint(new SKColor(100, 116, 139)),
@@ -557,14 +598,14 @@ namespace Analyzer.ViewModels
         {
             new Axis // Axe 0 (Gauche) : Vitesse
             {
-                Name = "Vitesse (km/h)",
+                Name = "Speed (km/h)", // Will be updated in UpdateTelemetryCharts
                 NamePaint = new SolidColorPaint(new SKColor(148, 163, 184)),
                 LabelsPaint = new SolidColorPaint(new SKColor(100, 116, 139)),
                 TextSize = 9,
                 Labeler = value => Math.Round(value).ToString(),
                 Position = LiveChartsCore.Measure.AxisPosition.Start,
-                MinStep = 50, // Moins de lignes (une ligne tous les 50 km/h minimum)
-                SeparatorsPaint = new SolidColorPaint(new SKColor(100, 116, 139, 40), 0.5f) // Quadrillage très fin et discret
+                MinStep = 50,
+                SeparatorsPaint = new SolidColorPaint(new SKColor(100, 116, 139, 40), 0.5f)
             },
             new Axis // Axe 1 (Droite) : Angle / G
             {
@@ -585,7 +626,7 @@ namespace Analyzer.ViewModels
                 Labeler = value => value >= 0 ? $"+{value:F2}s" : $"{value:F2}s",
                 Position = LiveChartsCore.Measure.AxisPosition.End,
                 ShowSeparatorLines = false,
-                IsVisible = false // Masqué par défaut
+                IsVisible = false
             }
         };
 
@@ -632,6 +673,7 @@ namespace Analyzer.ViewModels
         public MainViewModel()
         {
             _settings = _settingsService.LoadSettings();
+            CurrentLanguage = _settings.Language ?? "French";
 
             // Appliquer les paramètres chargés
             _showSpeed = _settings.ShowSpeed;
@@ -1368,6 +1410,8 @@ namespace Analyzer.ViewModels
             }
 
             bool useDistance = (ComparisonLaps.Count > 1 || (ShowReference && ReferenceLap != null));
+            var app = System.Windows.Application.Current;
+            if (app == null) return;
 
             // Mise à jour de l'axe X
             if (useDistance)
@@ -1377,9 +1421,14 @@ namespace Analyzer.ViewModels
             }
             else
             {
-                XAxes[0].Name = "Temps (min:sec)";
+                XAxes[0].Name = (string)app.FindResource("AxisTime");
                 XAxes[0].Labeler = value => TimeSpan.FromSeconds(value).ToString(@"mm\:ss");
             }
+            
+            YAxes[0].Name = (string)app.FindResource("AxisSpeed");
+            YAxes[1].Name = (string)app.FindResource("AxisAngle");
+            YAxes[2].Name = (string)app.FindResource("AxisDelta");
+            OnPropertyChanged(nameof(XAxisValueLabel));
 
             var seriesList = new List<ISeries>();
             LegendEntries.Clear();

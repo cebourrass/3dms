@@ -1,0 +1,101 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    
+    <!-- Ribbon Tabs -->
+    <sys:String x:Key="TabSession">SESSION</sys:String>
+    <sys:String x:Key="TabView">VIEW</sys:String>
+    <sys:String x:Key="TabSettings">SETTINGS</sys:String>
+    
+    <!-- Session Tab -->
+    <sys:String x:Key="BtnOpenSession">Open Session</sys:String>
+    <sys:String x:Key="LblTrackDetected">Track Detected:</sys:String>
+    
+    <!-- View Tab -->
+    <sys:String x:Key="ChkExplorer">Explorer</sys:String>
+    <sys:String x:Key="ChkLapsTable">Laps</sys:String>
+    <sys:String x:Key="ChkSessionInfo">Session Info</sys:String>
+    <sys:String x:Key="ChkMap">Map</sys:String>
+    <sys:String x:Key="ChkCharts">Telemetry</sys:String>
+    
+    <!-- Settings Tab Groups -->
+    <sys:String x:Key="GrpSpeed">SPEED</sys:String>
+    <sys:String x:Key="GrpAngleLeft">LEAN L</sys:String>
+    <sys:String x:Key="GrpAngleRight">LEAN R</sys:String>
+    <sys:String x:Key="GrpAccel">ACCEL (THROTTLE)</sys:String>
+    <sys:String x:Key="GrpDecel">DECEL (BRAKE)</sys:String>
+    <sys:String x:Key="GrpReference">REFERENCE</sys:String>
+    <sys:String x:Key="GrpCompThickness">COMP. THICKNESS (SLOW/FAST)</sys:String>
+    <sys:String x:Key="GrpResolution">RESOLUTION</sys:String>
+    <sys:String x:Key="GrpMapStyle">MAP: STYLE</sys:String>
+    <sys:String x:Key="GrpSystem">SYSTEM</sys:String>
+    <sys:String x:Key="GrpRegularityThresholds">REGULARITY THRESHOLDS (s)</sys:String>
+    
+    <sys:String x:Key="LblSmoothing">SMOOTHING</sys:String>
+    <sys:String x:Key="LblSlow">Slow</sys:String>
+    <sys:String x:Key="LblFast">Fast</sys:String>
+    <sys:String x:Key="LblMapThickness">TRACE THICKNESS</sys:String>
+    <sys:String x:Key="LblMapCursor">CURSOR</sys:String>
+    <sys:String x:Key="ChkCorruptionAlert">Corruption Alert</sys:String>
+    
+    <!-- DataGrid Headers -->
+    <sys:String x:Key="ColLap">Lap</sys:String>
+    <sys:String x:Key="ColType">Type</sys:String>
+    <sys:String x:Key="ColCumulative">Cumulative</sys:String>
+    <sys:String x:Key="ColTime">Time</sys:String>
+    <sys:String x:Key="ColVmax">Vmax</sys:String>
+    <sys:String x:Key="ColVmin">Vmin</sys:String>
+    <sys:String x:Key="ColLeft">Left</sys:String>
+    <sys:String x:Key="ColRight">Right</sys:String>
+    <sys:String x:Key="ColAccel">Accel</sys:String>
+    <sys:String x:Key="ColDecel">Decel</sys:String>
+    
+    <!-- Regularity Stats -->
+    <sys:String x:Key="LblRegularityTitle">REGULARITY (σ - Std Dev)</sys:String>
+    <sys:String x:Key="LblExc">Exc.</sys:String>
+    <sys:String x:Key="LblMoy">Avg.</sys:String>
+    
+    <!-- Session Info Panel -->
+    <sys:String x:Key="LblDate">Date:</sys:String>
+    <sys:String x:Key="LblCircuit">Track:</sys:String>
+    <sys:String x:Key="LblEvent">Event:</sys:String>
+    <sys:String x:Key="LblPilot">Rider:</sys:String>
+    <sys:String x:Key="LblBest">Best:</sys:String>
+    <sys:String x:Key="LblIdeal">Ideal:</sys:String>
+    <sys:String x:Key="LblVehicle">Vehicle:</sys:String>
+    <sys:String x:Key="LblTrack">Track Conditions:</sys:String>
+    <sys:String x:Key="LblTemp">Temp. (°C):</sys:String>
+    <sys:String x:Key="LblTires">Tires:</sys:String>
+    <sys:String x:Key="LblNotes">Notes:</sys:String>
+    
+    <!-- Placeholders -->
+    <sys:String x:Key="PhAutoDetect">Auto-detect...</sys:String>
+    <sys:String x:Key="PhEvent">Ex: Club racing...</sys:String>
+    <sys:String x:Key="PhPilot">Choose or type...</sys:String>
+    <sys:String x:Key="PhVehicle">Model...</sys:String>
+    <sys:String x:Key="PhTires">Model, compound...</sys:String>
+    <sys:String x:Key="PhNotes">Pressures, settings...</sys:String>
+    
+    <!-- Map Toolbar -->
+    <sys:String x:Key="ChkInfoBadge">INFO BADGE</sys:String>
+    <sys:String x:Key="LblRotation">ROTATION:</sys:String>
+    <sys:String x:Key="LblZoom">ZOOM:</sys:String>
+    <sys:String x:Key="LblPan">X/Y:</sys:String>
+    
+    <!-- Charts Legend -->
+    <sys:String x:Key="LegSpeed">Speed</sys:String>
+    <sys:String x:Key="LegAngleLeft">Angle L</sys:String>
+    <sys:String x:Key="LegAngleRight">Angle R</sys:String>
+    <sys:String x:Key="LegAccel">Accel</sys:String>
+    <sys:String x:Key="LegDecel">Brake</sys:String>
+    <sys:String x:Key="LegDelta">DELTA</sys:String>
+    <sys:String x:Key="LegRef">REFERENCE</sys:String>
+    
+    <!-- Chart Axes -->
+    <sys:String x:Key="AxisSpeed">Speed (km/h)</sys:String>
+    <sys:String x:Key="AxisTime">Time (min:sec)</sys:String>
+    <sys:String x:Key="AxisAngle">Angle (°) / G</sys:String>
+    <sys:String x:Key="AxisDelta">Δ Time (s)</sys:String>
+    <sys:String x:Key="LblBottomTime">TIME</sys:String>
+    
+</ResourceDictionary>
