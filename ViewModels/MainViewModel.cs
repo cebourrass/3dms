@@ -1118,7 +1118,7 @@ namespace Analyzer.ViewModels
             {
                 if (lap == null) return;
                 var start = lap.StartTimeMs;
-                var end = start + lap.LapTimeMs;
+                var end = start + lap.LapTimeMs + 300; // Marge de 300ms pour inclure le point de jonction
                 points = CurrentSession!.AllPoints
                     .Where(p => p.Time >= start && p.Time <= end)
                     .OrderBy(p => p.Time)
@@ -1344,10 +1344,16 @@ namespace Analyzer.ViewModels
                 {
                     interpolated.Add(smoothed.Last());
                 }
-
-                // Sécurité supplémentaire : limiter le nombre de points interpolés (max 200,000)
-                if (interpolated.Count > 200000) break;
             }
+
+            // Toujours s'assurer que le dernier point exact est ajouté pour fermer le tracé
+            if (interpolated.Last().Time < smoothed.Last().Time)
+            {
+                interpolated.Add(smoothed.Last());
+            }
+
+            // Sécurité supplémentaire : limiter le nombre de points interpolés (max 200,000)
+            if (interpolated.Count > 200000) return interpolated;
 
             return interpolated;
         }
@@ -1771,7 +1777,7 @@ namespace Analyzer.ViewModels
         {
             if (lap == null) return new List<TelemetryPoint>();
             return CurrentSession!.AllPoints
-                .Where(p => p.Time >= lap.StartTimeMs && p.Time <= lap.StartTimeMs + lap.LapTimeMs)
+                .Where(p => p.Time >= lap.StartTimeMs && p.Time <= lap.StartTimeMs + lap.LapTimeMs + 300)
                 .OrderBy(p => p.Time)
                 .ToList();
         }
