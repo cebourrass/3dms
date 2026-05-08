@@ -47,6 +47,7 @@ namespace Analyzer.Models
         public int SpeedSmoothing { get; set; } = 3;
         public int AngleSmoothing { get; set; } = 3;
         public int AccelSmoothing { get; set; } = 3;
+        public int GpsSmoothing { get; set; } = 3;
 
         // Fréquence d'interpolation (ms)
         public double InterpolationStepMs { get; set; } = 20.0;

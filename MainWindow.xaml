@@ -335,12 +335,14 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!-- Group 5.8: Map Rendering -->
                                 <Border BorderBrush="#334155" BorderThickness="0,0,1,0" Margin="0,0,15,0" Padding="0,0,15,0">
                                     <StackPanel Width="120">
-                                        <TextBlock Text="CARTE : TRAJECTOIRE" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                        <TextBlock Text="CARTE : ÉPAISSEUR" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
                                         <Slider Minimum="0.5" Maximum="5" Value="{Binding MapTrajectoryThickness}" TickFrequency="0.1" IsSnapToTickEnabled="True" Margin="0,4,0,0"/>
                                         
+                                        <TextBlock Text="LISSAGE TRACE" FontSize="8" FontWeight="Bold" Foreground="#64748b" Margin="0,8,0,4"/>
+                                        <ComboBox ItemsSource="{Binding SmoothingOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding GpsSmoothing}" Height="24" Padding="4,0" ui:ControlHelper.CornerRadius="4" FontSize="10" HorizontalAlignment="Stretch"/>
+
                                         <TextBlock Text="CARTE : CURSEUR" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,8,0,4"/>
                                         <Slider Minimum="2" Maximum="20" Value="{Binding MapCursorSize}" TickFrequency="1" IsSnapToTickEnabled="True" Margin="0,4,0,0"/>
                                     </StackPanel>
@@ -630,7 +632,7 @@
                                             <Rectangle Width="1" Height="16" Fill="#444" Margin="0,0,20,0"/>
                                             
                                             <TextBlock Text="ZOOM :" Foreground="#94a3b8" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                            <Slider Minimum="0.5" Maximum="5" Value="{Binding MapZoom}" Width="80" VerticalAlignment="Center"/>
+                                            <Slider Minimum="0.5" Maximum="10" Value="{Binding MapZoom}" Width="80" VerticalAlignment="Center"/>
                                             <Button Content="Reset" Command="{Binding ResetMapZoomCommand}" Background="Transparent" Foreground="Cyan" FontSize="10" Padding="4,2" Margin="0,0,20,0"/>
 
                                             <Rectangle Width="1" Height="16" Fill="#444" Margin="0,0,20,0"/>

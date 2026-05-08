@@ -150,6 +150,9 @@ namespace Analyzer.ViewModels
         private int _accelSmoothing;
         public int AccelSmoothing { get => _accelSmoothing; set { if (SetProperty(ref _accelSmoothing, value)) UpdateTelemetryCharts(); } }
 
+        private int _gpsSmoothing;
+        public int GpsSmoothing { get => _gpsSmoothing; set { if (SetProperty(ref _gpsSmoothing, value)) UpdateTelemetryCharts(); } }
+
         public class SmoothingOption
         {
             public string Name { get; set; } = string.Empty;
@@ -657,6 +660,7 @@ namespace Analyzer.ViewModels
             _speedSmoothing = _settings.SpeedSmoothing;
             _angleSmoothing = _settings.AngleSmoothing;
             _accelSmoothing = _settings.AccelSmoothing;
+            _gpsSmoothing = _settings.GpsSmoothing;
             _interpolationStepMs = _settings.InterpolationStepMs > 0 ? _settings.InterpolationStepMs : 20.0;
             _mapTrajectoryThickness = _settings.MapTrajectoryThickness > 0 ? _settings.MapTrajectoryThickness : 1.2;
             _mapCursorSize = _settings.MapCursorSize > 0 ? _settings.MapCursorSize : 6.0;
@@ -729,6 +733,7 @@ namespace Analyzer.ViewModels
             _settings.SpeedSmoothing = SpeedSmoothing;
             _settings.AngleSmoothing = AngleSmoothing;
             _settings.AccelSmoothing = AccelSmoothing;
+            _settings.GpsSmoothing = GpsSmoothing;
             _settings.InterpolationStepMs = InterpolationStepMs;
             _settings.MapTrajectoryThickness = MapTrajectoryThickness;
             _settings.MapCursorSize = MapCursorSize;
@@ -1135,7 +1140,7 @@ namespace Analyzer.ViewModels
             }
             if (lap != null)
             {
-                lap.TelemetryPoints = points;
+                lap.TelemetryPoints = processedPoints; // Utiliser les points lissés/interpolés
             }
 
             bool useDistance = (ComparisonLaps.Count > 1 || (ShowReference && _cachedReferencePoints != null));
@@ -1274,10 +1279,15 @@ namespace Analyzer.ViewModels
                 int gEnd = Math.Min(rawPoints.Count - 1, i + gWindow / 2);
                 pt.Acceleration = (float)rawPoints.Skip(gStart).Take(gEnd - gStart + 1).Average(p => (double)p.Acceleration);
                 
-                // Coordonnées et Distance
+                // Lissage Coordonnées (GPS Jitter)
+                int cWindow = Math.Max(1, GpsSmoothing);
+                int cStart = Math.Max(0, i - cWindow / 2);
+                int cEnd = Math.Min(rawPoints.Count - 1, i + cWindow / 2);
+                pt.Latitude = (float)rawPoints.Skip(cStart).Take(cEnd - cStart + 1).Average(p => (double)p.Latitude);
+                pt.Longitude = (float)rawPoints.Skip(cStart).Take(cEnd - cStart + 1).Average(p => (double)p.Longitude);
+                
+                // Distance
                 pt.Distance = rawPoints[i].Distance;
-                pt.Latitude = rawPoints[i].Latitude;
-                pt.Longitude = rawPoints[i].Longitude;
 
                 smoothed.Add(pt);
             }
@@ -2056,8 +2066,12 @@ namespace Analyzer.ViewModels
 
             foreach (var lap in lapsToDraw)
             {
-                var points = lap.TelemetryPoints ?? GetLapPoints(lap);
-                if (points == null || !points.Any()) continue;
+                var points = lap.TelemetryPoints;
+                if (points == null || !points.Any()) 
+                {
+                    points = InterpolateAndSmooth(GetLapPoints(lap));
+                    lap.TelemetryPoints = points;
+                }
 
                 var projPoints = new System.Windows.Media.PointCollection();
                 foreach (var p in points)

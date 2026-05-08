@@ -276,7 +276,7 @@ namespace Analyzer
                 
                 // Clamp between limits
                 if (newZoom < 0.5) newZoom = 0.5;
-                if (newZoom > 5.0) newZoom = 5.0;
+                if (newZoom > 10.0) newZoom = 10.0;
                 
                 vm.MapZoom = newZoom;
                 e.Handled = true;
