@@ -102,4 +102,5 @@
     <!-- Settings: Accel Gradient -->
     <sys:String x:Key="LblAccelRange">Accel Color Range (G):</sys:String>
     <sys:String x:Key="ChkAutoAccelScaling">Auto-scale Colors (Min/Max)</sys:String>
+    <sys:String x:Key="ChkAutoCenterMap">FOLLOW</sys:String>
 </ResourceDictionary>

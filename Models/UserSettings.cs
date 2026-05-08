@@ -25,6 +25,7 @@ namespace Analyzer.Models
         public bool ShowAccelMapGradient { get; set; } = true;
         public double AccelGradientRange { get; set; } = 1.2;
         public bool AutoAccelGradientScaling { get; set; } = false;
+        public bool AutoCenterMap { get; set; } = true;
         public bool ShowCorruptionWarning { get; set; } = false;
 
         // Styles des courbes

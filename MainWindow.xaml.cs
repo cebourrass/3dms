@@ -337,6 +337,9 @@ namespace Analyzer
 
                 if (_isDraggingMapPan)
                 {
+                    // Si l'utilisateur déplace la carte manuellement, on désactive le suivi automatique
+                    if (vm.AutoCenterMap) vm.AutoCenterMap = false;
+
                     double deltaX = currentPosition.X - _lastMousePositionPan.X;
                     double deltaY = currentPosition.Y - _lastMousePositionPan.Y;
                     

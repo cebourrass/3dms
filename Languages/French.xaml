@@ -94,4 +94,5 @@
     <!-- Paramètres : Dégradé Accel -->
     <sys:String x:Key="LblAccelRange">Plage Couleurs Accel (G) :</sys:String>
     <sys:String x:Key="ChkAutoAccelScaling">Échelle Auto (Min/Max)</sys:String>
+    <sys:String x:Key="ChkAutoCenterMap">SUIVI</sys:String>
 </ResourceDictionary>

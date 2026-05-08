@@ -111,6 +111,9 @@ namespace Analyzer.ViewModels
         private bool _showAccelMapGradient = false;
         public bool ShowAccelMapGradient { get => _showAccelMapGradient; set { if (SetProperty(ref _showAccelMapGradient, value)) UpdateTrajectoryUI(CurrentMap); } }
 
+        private bool _autoCenterMap = true;
+        public bool AutoCenterMap { get => _autoCenterMap; set => SetProperty(ref _autoCenterMap, value); }
+
         public List<LapData> ComparisonLaps { get; set; } = new();
 
         // Paramètres de style (Onglet Paramètres)
@@ -719,6 +722,7 @@ namespace Analyzer.ViewModels
 
             _accelGradientRange = _settings.AccelGradientRange > 0 ? _settings.AccelGradientRange : 1.2;
             _autoAccelGradientScaling = _settings.AutoAccelGradientScaling;
+            _autoCenterMap = _settings.AutoCenterMap;
 
             _showDeltaTime = false; // Par défaut éteint
             
@@ -770,6 +774,7 @@ namespace Analyzer.ViewModels
             _settings.ShowAccelMapGradient = ShowAccelMapGradient;
             _settings.AccelGradientRange = AccelGradientRange;
             _settings.AutoAccelGradientScaling = AutoAccelGradientScaling;
+            _settings.AutoCenterMap = AutoCenterMap;
             _settings.ShowCorruptionWarning = ShowCorruptionWarning;
 
             _settings.SpeedColor = SpeedColor;
@@ -1932,6 +1937,15 @@ namespace Analyzer.ViewModels
                     {
                         CursorMapX = (point.Longitude - _mapMinLon) * _mapRatio * _mapScale + (MapCanvasSize * 0.05);
                         CursorMapY = MapCanvasSize - ((point.Latitude - _mapMinLat) * _mapScale + (MapCanvasSize * 0.05));
+
+                        if (AutoCenterMap)
+                        {
+                            // Recentrer la carte sur le curseur
+                            // MapPanX/Y sont appliqués à la Viewbox. On veut que CursorMapX/Y soit au centre du viewport.
+                            // Le centre théorique est MapCanvasSize / 2 (250).
+                            MapPanX = (MapCanvasSize / 2.0 - CursorMapX) * MapZoom;
+                            MapPanY = (MapCanvasSize / 2.0 - CursorMapY) * MapZoom;
+                        }
                     }
                     CurrentSpeed = point.Speed;
                     CurrentAngle = Math.Abs(point.LeanAngle);
