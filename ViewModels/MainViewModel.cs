@@ -75,6 +75,7 @@ namespace Analyzer.ViewModels
         private readonly MapReaderService _mapReaderService = new MapReaderService();
         private readonly LapService _lapService = new LapService();
         private readonly SettingsService _settingsService = new SettingsService();
+        private readonly CornerService _cornerService = new CornerService();
         private UserSettings _settings;
 
         private TrackMap? _currentMap;
@@ -102,7 +103,7 @@ namespace Analyzer.ViewModels
         public LapData? ReferenceLap
         {
             get => _referenceLap;
-            set => SetProperty(ref _referenceLap, value);
+            set { if (SetProperty(ref _referenceLap, value)) UpdateTelemetryCharts(); }
         }
 
         private bool _showReference = true;
@@ -113,6 +114,15 @@ namespace Analyzer.ViewModels
 
         private bool _autoCenterMap = true;
         public bool AutoCenterMap { get => _autoCenterMap; set => SetProperty(ref _autoCenterMap, value); }
+
+        private bool _isCornerAnalysisVisible;
+        public bool IsCornerAnalysisVisible
+        {
+            get => _isCornerAnalysisVisible;
+            set => SetProperty(ref _isCornerAnalysisVisible, value);
+        }
+
+        public ObservableCollection<CornerComparison> CornerComparisons { get; } = new();
 
         public List<LapData> ComparisonLaps { get; set; } = new();
 
@@ -1040,7 +1050,7 @@ namespace Analyzer.ViewModels
 
             // Clear previous session state completely
             Laps.Clear();
-            // On ne vide plus ReferenceLap pour permettre la comparaison globale
+            ReferenceLap = null;
             ComparisonLaps.Clear();
             _currentLapPoints.Clear();
             BestLapTime = "--:--.--";
@@ -1431,6 +1441,24 @@ namespace Analyzer.ViewModels
             return interpolated;
         }
 
+        private void AnalyzeCorners()
+        {
+            if (ReferenceLap == null || SelectedLap == null || ReferenceLap.TelemetryPoints == null || SelectedLap.TelemetryPoints == null)
+            {
+                IsCornerAnalysisVisible = false;
+                CornerComparisons.Clear();
+                return;
+            }
+
+            var corners = _cornerService.DetectCorners(ReferenceLap.TelemetryPoints);
+            var comparisons = _cornerService.CompareLaps(ReferenceLap, SelectedLap, corners);
+
+            CornerComparisons.Clear();
+            foreach (var comp in comparisons) CornerComparisons.Add(comp);
+
+            IsCornerAnalysisVisible = CornerComparisons.Any();
+        }
+
         public void UpdateTelemetryCharts()
         {
             if (SelectedLap == null || CurrentSession == null)
@@ -1786,6 +1814,7 @@ namespace Analyzer.ViewModels
             UpdateRegularityStats();
             
             TelemetrySeries = seriesList.ToArray();
+            AnalyzeCorners();
         }
 
         private void GetDeltaLaps(out LapData? lap1, out LapData? lap2)
