@@ -2157,7 +2157,8 @@ namespace Analyzer.ViewModels
             LapTrajectories.Clear();
             var lapsToDraw = new List<LapData>();
             if (SelectedLap != null) lapsToDraw.Add(SelectedLap);
-            foreach (var lap in ComparisonLaps) if (lap != SelectedLap) lapsToDraw.Add(lap);
+            if (ShowReference && ReferenceLap != null && !lapsToDraw.Contains(ReferenceLap)) lapsToDraw.Add(ReferenceLap);
+            foreach (var lap in ComparisonLaps) if (!lapsToDraw.Contains(lap)) lapsToDraw.Add(lap);
 
             // Calculer les bornes globales pour l'épaisseur dynamique (même logique que la télémétrie)
             double globalMinMs = 0;
@@ -2244,7 +2245,11 @@ namespace Analyzer.ViewModels
                     }
 
                     string color = "#FFFFFF";
-                    if (lap == SelectedLap)
+                    if (lap == ReferenceLap)
+                    {
+                        color = RefColor;
+                    }
+                    else if (lap == SelectedLap)
                     {
                         color = SpeedColor;
                     }
