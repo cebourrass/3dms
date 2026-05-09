@@ -206,6 +206,12 @@ namespace Analyzer.ViewModels
         private float _compSlowThickness = 0.5f;
         public float CompSlowThickness { get => _compSlowThickness; set { if (SetProperty(ref _compSlowThickness, value)) UpdateTelemetryCharts(); } }
 
+        // Comparison Map Thickness Range (Fast/Slow)
+        private float _mapCompFastThickness = 1.0f;
+        public float MapCompFastThickness { get => _mapCompFastThickness; set { if (SetProperty(ref _mapCompFastThickness, value)) UpdateTrajectoryUI(CurrentMap); } }
+        private float _mapCompSlowThickness = 0.3f;
+        public float MapCompSlowThickness { get => _mapCompSlowThickness; set { if (SetProperty(ref _mapCompSlowThickness, value)) UpdateTrajectoryUI(CurrentMap); } }
+
         private bool _showSpeed = true;
         public bool ShowSpeed { get => _showSpeed; set { if (SetProperty(ref _showSpeed, value)) UpdateTelemetryCharts(); } }
         
@@ -711,6 +717,8 @@ namespace Analyzer.ViewModels
             _refThickness = _settings.RefThickness;
             _compFastThickness = _settings.CompFastThickness;
             _compSlowThickness = _settings.CompSlowThickness;
+            _mapCompFastThickness = _settings.MapCompFastThickness > 0 ? _settings.MapCompFastThickness : 1.0f;
+            _mapCompSlowThickness = _settings.MapCompSlowThickness > 0 ? _settings.MapCompSlowThickness : 0.3f;
 
             _speedSmoothing = _settings.SpeedSmoothing;
             _angleSmoothing = _settings.AngleSmoothing;
@@ -792,6 +800,8 @@ namespace Analyzer.ViewModels
 
             _settings.CompFastThickness = CompFastThickness;
             _settings.CompSlowThickness = CompSlowThickness;
+            _settings.MapCompFastThickness = MapCompFastThickness;
+            _settings.MapCompSlowThickness = MapCompSlowThickness;
 
             _settings.SpeedSmoothing = SpeedSmoothing;
             _settings.AngleSmoothing = AngleSmoothing;
@@ -2149,6 +2159,19 @@ namespace Analyzer.ViewModels
             if (SelectedLap != null) lapsToDraw.Add(SelectedLap);
             foreach (var lap in ComparisonLaps) if (lap != SelectedLap) lapsToDraw.Add(lap);
 
+            // Calculer les bornes globales pour l'épaisseur dynamique (même logique que la télémétrie)
+            double globalMinMs = 0;
+            double globalMaxMs = 0;
+            double globalRange = 0;
+            bool isComparing = lapsToDraw.Count > 1;
+
+            if (isComparing)
+            {
+                globalMinMs = lapsToDraw.Min(l => l.LapTimeMs);
+                globalMaxMs = lapsToDraw.Max(l => l.LapTimeMs);
+                globalRange = globalMaxMs - globalMinMs;
+            }
+
             foreach (var lap in lapsToDraw)
             {
                 var points = lap.TelemetryPoints;
@@ -2157,6 +2180,12 @@ namespace Analyzer.ViewModels
                     points = InterpolateAndSmooth(GetLapPoints(lap));
                     lap.TelemetryPoints = points;
                 }
+
+                // Calcul de l'épaisseur dynamique si comparaison
+                double factor = (isComparing && globalRange > 0) ? (lap.LapTimeMs - globalMinMs) / globalRange : 0;
+                double dynamicThickness = isComparing 
+                    ? (MapCompFastThickness + (factor * (MapCompSlowThickness - MapCompFastThickness)))
+                    : MapTrajectoryThickness;
 
                 if (ShowAccelMapGradient)
                 {
@@ -2198,7 +2227,7 @@ namespace Analyzer.ViewModels
                         {
                             Color = GetColorForAccel(p2.Acceleration, limitPos, limitNeg),
                             Points = segPoints,
-                            Thickness = lap == SelectedLap ? (MapTrajectoryThickness * 1.5) : MapTrajectoryThickness,
+                            Thickness = lap == SelectedLap ? (dynamicThickness * 1.3) : dynamicThickness,
                             Opacity = lap == SelectedLap ? 1.0f : 0.6f
                         });
                     }
@@ -2230,7 +2259,7 @@ namespace Analyzer.ViewModels
                     {
                         Color = color,
                         Points = projPoints,
-                        Thickness = lap == SelectedLap ? MapTrajectoryThickness : (MapTrajectoryThickness / 2.0),
+                        Thickness = lap == SelectedLap ? dynamicThickness : (dynamicThickness * 0.8),
                         Opacity = 1.0f
                     });
                 }

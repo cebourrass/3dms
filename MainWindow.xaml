@@ -315,10 +315,10 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!-- Group 5: Comparison -->
+                                <!-- Group 5: Comparison Telemetry -->
                                 <Border BorderBrush="#334155" BorderThickness="0,0,1,0" Margin="0,0,15,0" Padding="0,0,15,0">
                                     <StackPanel Width="150">
-                                        <TextBlock Text="{DynamicResource GrpCompThickness}" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                        <TextBlock Text="{DynamicResource GrpCompThicknessTel}" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
@@ -335,6 +335,31 @@
                                             <Run Text="{Binding CompSlowThickness, StringFormat='{}{0:F1}', Mode=OneWay}"/>
                                             <Run Text=" (Lent) - "/>
                                             <Run Text="{Binding CompFastThickness, StringFormat='{}{0:F1}', Mode=OneWay}"/>
+                                            <Run Text=" (Rap.)"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Group 5.1: Comparison Map -->
+                                <Border BorderBrush="#334155" BorderThickness="0,0,1,0" Margin="0,0,15,0" Padding="0,0,15,0">
+                                    <StackPanel Width="150">
+                                        <TextBlock Text="{DynamicResource GrpCompThicknessMap}" FontSize="9" FontWeight="Bold" Foreground="#94a3b8" Margin="0,0,0,4"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Margin="0,0,5,0">
+                                                <Slider Minimum="0.1" Maximum="3" Value="{Binding MapCompSlowThickness}"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Margin="5,0,0,0">
+                                                <Slider Minimum="0.1" Maximum="3" Value="{Binding MapCompFastThickness}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <TextBlock FontSize="10" Foreground="White" HorizontalAlignment="Center" Margin="0,2,0,0">
+                                            <Run Text="{Binding MapCompSlowThickness, StringFormat='{}{0:F1}', Mode=OneWay}"/>
+                                            <Run Text=" (Lent) - "/>
+                                            <Run Text="{Binding MapCompFastThickness, StringFormat='{}{0:F1}', Mode=OneWay}"/>
                                             <Run Text=" (Rap.)"/>
                                         </TextBlock>
                                     </StackPanel>
@@ -722,7 +747,7 @@
                                                                   Stroke="{Binding Color}" 
                                                                   StrokeThickness="{Binding Thickness}" 
                                                                   Opacity="{Binding Opacity}"
-                                                                  StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                                                  StrokeLineJoin="Round" StrokeStartLineCap="Flat" StrokeEndLineCap="Flat"/>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>

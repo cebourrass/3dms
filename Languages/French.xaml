@@ -25,7 +25,8 @@
     <sys:String x:Key="GrpAccel">ACCEL (GAZ)</sys:String>
     <sys:String x:Key="GrpDecel">DÉCÉL (FREIN)</sys:String>
     <sys:String x:Key="GrpReference">RÉFÉRENCE</sys:String>
-    <sys:String x:Key="GrpCompThickness">ÉPAYS. COMP. (LENT/RAPIDE)</sys:String>
+    <sys:String x:Key="GrpCompThicknessTel">COMP. TÉLÉ. (LENT/RAPIDE)</sys:String>
+    <sys:String x:Key="GrpCompThicknessMap">COMP. CARTE (LENT/RAPIDE)</sys:String>
     <sys:String x:Key="GrpResolution">RÉSOLUTION</sys:String>
     <sys:String x:Key="GrpMapStyle">CARTE : STYLE</sys:String>
     <sys:String x:Key="GrpSystem">SYSTÈME</sys:String>

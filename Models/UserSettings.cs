@@ -46,6 +46,10 @@ namespace Analyzer.Models
         public float CompFastThickness { get; set; } = 1.5f;
         public float CompSlowThickness { get; set; } = 0.5f;
 
+        // Épaisseurs de comparaison Map
+        public float MapCompFastThickness { get; set; } = 1.0f;
+        public float MapCompSlowThickness { get; set; } = 0.3f;
+
         // Lissage des courbes (Interpolation)
         // 1: Aucun, 2: Bas (window=2), 3: Moyen (window=4), 5: Haut (window=7)
         public int SpeedSmoothing { get; set; } = 3;

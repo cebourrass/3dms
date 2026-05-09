@@ -25,7 +25,8 @@
     <sys:String x:Key="GrpAccel">ACCEL (THROTTLE)</sys:String>
     <sys:String x:Key="GrpDecel">DECEL (BRAKE)</sys:String>
     <sys:String x:Key="GrpReference">REFERENCE</sys:String>
-    <sys:String x:Key="GrpCompThickness">COMP. THICKNESS (SLOW/FAST)</sys:String>
+    <sys:String x:Key="GrpCompThicknessTel">COMP. TEL. (SLOW/FAST)</sys:String>
+    <sys:String x:Key="GrpCompThicknessMap">COMP. MAP (SLOW/FAST)</sys:String>
     <sys:String x:Key="GrpResolution">RESOLUTION</sys:String>
     <sys:String x:Key="GrpMapStyle">MAP: STYLE</sys:String>
     <sys:String x:Key="GrpSystem">SYSTEM</sys:String>
