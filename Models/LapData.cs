@@ -6,9 +6,9 @@ namespace Analyzer.Models
     public class LapData : ObservableObject
     {
         public int Number { get; set; }
-        public string Type { get; set; }
-        public string CumulativeTime { get; set; }
-        public string LapTime { get; set; }
+        public string Type { get; set; } = string.Empty;
+        public string CumulativeTime { get; set; } = string.Empty;
+        public string LapTime { get; set; } = string.Empty;
         
         // Données précises pour l'interpolation
         public double StartTimeMs { get; set; }
@@ -21,9 +21,9 @@ namespace Analyzer.Models
         public double MaxLeanRight { get; set; }
         public float MaxAccel { get; set; }
         public float MaxDecel { get; set; }
-        public string[] Partials { get; set; }
-        public double[] PartialDistances { get; set; }
-        public double[] CumulativePartialTimesMs { get; set; }
+        public string[] Partials { get; set; } = Array.Empty<string>();
+        public double[] PartialDistances { get; set; } = Array.Empty<double>();
+        public double[] CumulativePartialTimesMs { get; set; } = Array.Empty<double>();
         
         // Stockage optionnel des points (nécessaire pour la référence globale entre sessions)
         public System.Collections.Generic.List<TelemetryPoint>? TelemetryPoints { get; set; }

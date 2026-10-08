@@ -693,10 +693,7 @@
                                             </StackPanel>
 
                                             <StackPanel Margin="0,0,0,12">
-                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                                    <TextBlock Text="{DynamicResource LblPilot}" FontWeight="SemiBold" Opacity="0.7" FontSize="11"/>
-                                                    <TextBlock Text="(TODO: Profils)" Foreground="{DynamicResource SystemControlHighlightAccentBrush}" FontSize="9" VerticalAlignment="Bottom" Margin="4,0,0,0" Opacity="0.6"/>
-                                                </StackPanel>
+                                                <TextBlock Text="{DynamicResource LblPilot}" FontWeight="SemiBold" Opacity="0.7" FontSize="11" Margin="0,0,0,4"/>
                                                 <ComboBox ItemsSource="{Binding Pilots}" Text="{Binding SessionPilot}" IsEditable="True" ui:ControlHelper.PlaceholderText="{DynamicResource PhPilot}"/>
                                             </StackPanel>
 

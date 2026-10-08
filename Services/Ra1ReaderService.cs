@@ -14,12 +14,15 @@ namespace Analyzer.Services
         private const int RecordSize = 28;
 
         /// <summary>
+        /// Nombre de points écartés comme corrompus lors du dernier <see cref="ReadFile"/>.
+        /// </summary>
+        public int LastCorruptedPointsCount { get; private set; }
+
+        /// <summary>
         /// Lit un fichier .ra1 et extrait la liste des points de télémétrie.
         /// </summary>
         /// <param name="filePath">Chemin d'accès complet au fichier .ra1.</param>
         /// <returns>Une liste d'objets <see cref="TelemetryPoint"/>.</returns>
-        public int LastCorruptedPointsCount { get; private set; }
-
         public List<TelemetryPoint> ReadFile(string filePath)
         {
             var points = new List<TelemetryPoint>();

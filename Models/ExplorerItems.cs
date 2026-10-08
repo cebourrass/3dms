@@ -4,7 +4,7 @@ namespace Analyzer.Models
 {
     public abstract class ExplorerItem
     {
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
     }
 
     public class FolderItem : ExplorerItem
@@ -14,6 +14,6 @@ namespace Analyzer.Models
 
     public class SessionItem : ExplorerItem
     {
-        public string FilePath { get; set; }
+        public string FilePath { get; set; } = string.Empty;
     }
 }

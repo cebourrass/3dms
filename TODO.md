@@ -21,6 +21,8 @@ Liste des fonctionnalités et améliorations planifiées pour l'analyse de pilot
 ## 🎨 UI / UX
 - [ ] **Légende Interactive** : Cliquer sur un tour dans la légende pour le mettre en surbrillance.
 - [ ] **Zoom Synchronisé** : Améliorer le comportement du zoom pour qu'il reste centré sur le curseur.
+- [ ] **Profils Pilotes** : Gérer une liste de pilotes persistante (aujourd'hui codée en dur) pour le panneau Infos Session.
+- [ ] **Persistance des Infos Session** : Sauvegarder évènement, pilote, véhicule, pneus et notes avec chaque session.
 
 ## 🌐 Hub Team
 - [ ] **Partage en ligne** : Création d'un espace pour partager et comparer ses datas avec les membres de son équipe/club.
