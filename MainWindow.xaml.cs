@@ -9,6 +9,8 @@ using System.Collections.Generic;
 
 using System.Windows.Data;
 using System.Globalization;
+using MenuItem = System.Windows.Controls.MenuItem;
+using DataGrid = System.Windows.Controls.DataGrid;
 
 namespace Analyzer
 {
