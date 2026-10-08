@@ -31,7 +31,9 @@ Liste des fonctionnalités et améliorations planifiées pour l'analyse de pilot
 - [ ] **Serveur MCP « Coach Claude »** : Exposer les données de l'analyseur via un serveur MCP pour qu'un coach Claude puisse analyser les sessions et conseiller le pilote.
   - Outils de lecture : lister les sessions/circuits, résumé d'une session (tours, meilleur tour, tour idéal, régularité), télémétrie d'un tour (échantillonnée), comparaison de deux tours (Delta Time, Vmin par virage).
   - Réutiliser les services existants (`Ra1ReaderService`, `LapService`, `CornerService`) dans une bibliothèque partagée entre l'appli WPF et le serveur MCP.
-  - S'appuyer sur [GUIDE_PILOTAGE.md](GUIDE_PILOTAGE.md) et [docs/analysis_vmin.md](docs/analysis_vmin.md) comme base de connaissances du coach.
+  - [x] Base de connaissances dans [coach/](coach/README.md) : expertise pilotage moto sur circuit ([coach/knowledge/](coach/knowledge/)) + une fiche par pilote ([coach/pilots/](coach/pilots/)), à exposer en ressources MCP.
+  - [ ] Compléter la fiche [Cedric](coach/pilots/cedric.md) à partir du skill « profil Cedric ».
+  - [ ] Prompt MCP « Débrief de session » (expertise + fiche pilote + résumé de session) et proposition de mise à jour de la fiche après chaque débrief.
 
 ## 🛠️ Technique
 - [ ] **Réglages dans %AppData%** : Stocker `user_settings.json` et `dock_layout.xml` dans `%AppData%` plutôt qu'à côté de l'exécutable (perdus à chaque changement de framework/dossier de build).
