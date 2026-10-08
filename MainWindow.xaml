@@ -607,22 +607,22 @@
                                                           HeadersVisibility="Column"
                                                           ui:ControlHelper.CornerRadius="4">
                                                     <DataGrid.Columns>
-                                                        <DataGridTextColumn Header="Virage" Binding="{Binding CornerName}" Width="*" />
-                                                        <DataGridTextColumn Header="Vmin Réf" Binding="{Binding ReferenceVmin, StringFormat={}{0:F1}}" Width="80">
+                                                        <DataGridTextColumn Header="{DynamicResource ColCorner}" Binding="{Binding CornerName}" Width="*" />
+                                                        <DataGridTextColumn Header="{DynamicResource ColRefVmin}" Binding="{Binding ReferenceVmin, StringFormat={}{0:F1}}" Width="80">
                                                             <DataGridTextColumn.ElementStyle>
                                                                 <Style TargetType="TextBlock">
                                                                     <Setter Property="HorizontalAlignment" Value="Center"/>
                                                                 </Style>
                                                             </DataGridTextColumn.ElementStyle>
                                                         </DataGridTextColumn>
-                                                        <DataGridTextColumn Header="Vmin Sél" Binding="{Binding SelectedVmin, StringFormat={}{0:F1}}" Width="80">
+                                                        <DataGridTextColumn Header="{DynamicResource ColSelVmin}" Binding="{Binding SelectedVmin, StringFormat={}{0:F1}}" Width="80">
                                                             <DataGridTextColumn.ElementStyle>
                                                                 <Style TargetType="TextBlock">
                                                                     <Setter Property="HorizontalAlignment" Value="Center"/>
                                                                 </Style>
                                                             </DataGridTextColumn.ElementStyle>
                                                         </DataGridTextColumn>
-                                                        <DataGridTemplateColumn Header="Delta" Width="60">
+                                                        <DataGridTemplateColumn Header="{DynamicResource ColDeltaVmin}" Width="60">
                                                             <DataGridTemplateColumn.CellTemplate>
                                                                 <DataTemplate>
                                                                     <TextBlock Text="{Binding DeltaVmin, StringFormat={}{0:+0.0;-0.0;0.0}}" 

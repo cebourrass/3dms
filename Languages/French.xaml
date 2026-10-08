@@ -72,6 +72,14 @@
     <sys:String x:Key="LblTires">Pneumatiques :</sys:String>
     <sys:String x:Key="LblNotes">Notes :</sys:String>
     
+    <!-- Placeholders -->
+    <sys:String x:Key="PhAutoDetect">Détection auto...</sys:String>
+    <sys:String x:Key="PhEvent">Ex : Roulage club...</sys:String>
+    <sys:String x:Key="PhPilot">Choisir ou saisir...</sys:String>
+    <sys:String x:Key="PhVehicle">Modèle...</sys:String>
+    <sys:String x:Key="PhTires">Modèle, gomme...</sys:String>
+    <sys:String x:Key="PhNotes">Pressions, réglages...</sys:String>
+    
     <!-- Map Toolbar -->
     <sys:String x:Key="ChkInfoBadge">BADGE D'INFOS</sys:String>
     <sys:String x:Key="LblRotation">ROTATION :</sys:String>
@@ -105,4 +113,5 @@
     <sys:String x:Key="ColCorner">Virage</sys:String>
     <sys:String x:Key="ColRefVmin">Vmin Réf</sys:String>
     <sys:String x:Key="ColSelVmin">Vmin Sél</sys:String>
+    <sys:String x:Key="ColDeltaVmin">Delta</sys:String>
 </ResourceDictionary>
