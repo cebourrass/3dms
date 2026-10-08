@@ -17,7 +17,7 @@ namespace Analyzer.ViewModels
 {
     public partial class MainViewModel : ObservableObject
     {
-        private ObservableCollection<string> _pilots = new ObservableCollection<string> { "Cédric Bourrassier", "Invité" };
+        private ObservableCollection<string> _pilots = new ObservableCollection<string> { "Cedric", "Invité" };
         public ObservableCollection<string> Pilots => _pilots;
 
         private ObservableCollection<string> _trackConditionsList = new ObservableCollection<string> { "Dry", "Wet", "Damp", "Mixed" };
