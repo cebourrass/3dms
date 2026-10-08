@@ -10,6 +10,9 @@
     <!-- Session Tab -->
     <sys:String x:Key="BtnOpenSession">Ouvrir une session</sys:String>
     <sys:String x:Key="LblTrackDetected">Circuit détecté :</sys:String>
+    <sys:String x:Key="LblDataFolder">Dossier des données :</sys:String>
+    <sys:String x:Key="BtnBrowse">Parcourir…</sys:String>
+    <sys:String x:Key="TipDataFolder">Dossier contenant un sous-dossier par session (fichiers .ra1)</sys:String>
     
     <!-- View Tab -->
     <sys:String x:Key="ChkExplorer">Explorateur</sys:String>

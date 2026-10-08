@@ -9,8 +9,6 @@ using System.Collections.Generic;
 
 using System.Windows.Data;
 using System.Globalization;
-using MenuItem = System.Windows.Controls.MenuItem;
-using DataGrid = System.Windows.Controls.DataGrid;
 
 namespace Analyzer
 {
@@ -144,6 +142,28 @@ namespace Analyzer
                     vm.LoadSessionCommand.Execute(dialog.FileName);
                 }
             }
+        }
+
+        private void BrowseDataFolder_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is not ViewModels.MainViewModel vm) return;
+
+            var dialog = new Microsoft.Win32.OpenFolderDialog
+            {
+                Title = "Sélectionner le dossier des données 3DMS"
+            };
+            if (System.IO.Directory.Exists(vm.DataFolderPath))
+                dialog.InitialDirectory = vm.DataFolderPath;
+
+            if (dialog.ShowDialog() == true)
+                vm.DataFolderPath = dialog.FolderName;
+        }
+
+        private void DataFolderTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            // Entrée valide la saisie sans attendre la perte de focus
+            if (e.Key == System.Windows.Input.Key.Enter && sender is TextBox tb)
+                tb.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
         }
 
         private void TreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)

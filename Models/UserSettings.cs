@@ -69,6 +69,9 @@ namespace Analyzer.Models
         public double RegularityThresholdExcellent { get; set; } = 0.10;
         public double RegularityThresholdMedium { get; set; } = 0.30;
 
+        // Dossier racine des données 3DMS (contient un sous-dossier par circuit/journée)
+        public string? DataFolderPath { get; set; }
+
         // Dernière session
         public string? LastFilePath { get; set; }
         public string? SelectedPilotProfileName { get; set; }

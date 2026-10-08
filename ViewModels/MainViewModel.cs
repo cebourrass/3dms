@@ -115,6 +115,23 @@ namespace Analyzer.ViewModels
         private bool _autoCenterMap = true;
         public bool AutoCenterMap { get => _autoCenterMap; set => SetProperty(ref _autoCenterMap, value); }
 
+        // Ancien emplacement codé en dur, utilisé tant qu'aucun dossier n'a été configuré
+        private const string LegacyDataFolderPath = @"C:\dev\3DMS-CED\3DMS Evo (38.39.8F.DC.D1.31)";
+
+        private string _dataFolderPath = LegacyDataFolderPath;
+        public string DataFolderPath
+        {
+            get => _dataFolderPath;
+            set
+            {
+                if (SetProperty(ref _dataFolderPath, value?.Trim().Trim('"') ?? string.Empty))
+                {
+                    _settings.DataFolderPath = _dataFolderPath;
+                    LoadExplorer();
+                }
+            }
+        }
+
         private bool _isCornerAnalysisVisible;
         public bool IsCornerAnalysisVisible
         {
@@ -754,6 +771,9 @@ namespace Analyzer.ViewModels
             _isChartsVisible = _settings.IsChartsVisible;
             _isExplorerVisible = _settings.IsExplorerVisible;
 
+            if (!string.IsNullOrWhiteSpace(_settings.DataFolderPath))
+                _dataFolderPath = _settings.DataFolderPath;
+
             LoadAvailableCircuits();
             LoadExplorer();
 
@@ -831,24 +851,39 @@ namespace Analyzer.ViewModels
 
         private void LoadExplorer()
         {
-            string rootPath = @"C:\dev\3DMS-CED";
-            var rootFolder = new FolderItem { Name = "Ma Moto (3DMS Evo)" };
-            
-            // On cherche le dossier spécifique s'il existe
-            string dataPath = System.IO.Path.Combine(rootPath, "3DMS Evo (38.39.8F.DC.D1.31)");
-            if (System.IO.Directory.Exists(dataPath))
+            ExplorerItems.Clear();
+
+            string dataPath = DataFolderPath;
+            if (string.IsNullOrWhiteSpace(dataPath) || !Directory.Exists(dataPath)) return;
+
+            var rootFolder = new FolderItem { Name = Path.GetFileName(Path.TrimEndingDirectorySeparator(dataPath)) };
+            try
             {
-                foreach (var dir in System.IO.Directory.GetDirectories(dataPath))
+                // Un sous-dossier par circuit/journée
+                foreach (var dir in Directory.GetDirectories(dataPath).OrderBy(d => d))
                 {
-                    var trackFolder = new FolderItem { Name = System.IO.Path.GetFileName(dir) };
-                    foreach (var file in System.IO.Directory.GetFiles(dir, "*.ra1"))
+                    var files = Directory.GetFiles(dir, "*.ra1").OrderBy(f => f).ToList();
+                    if (files.Count == 0) continue;
+
+                    var trackFolder = new FolderItem { Name = Path.GetFileName(dir) };
+                    foreach (var file in files)
                     {
-                        trackFolder.Children.Add(new SessionItem { Name = System.IO.Path.GetFileName(file), FilePath = file });
+                        trackFolder.Children.Add(new SessionItem { Name = Path.GetFileName(file), FilePath = file });
                     }
                     rootFolder.Children.Add(trackFolder);
                 }
+
+                // Sessions posées directement à la racine (ex. : dossier d'une seule journée)
+                foreach (var file in Directory.GetFiles(dataPath, "*.ra1").OrderBy(f => f))
+                {
+                    rootFolder.Children.Add(new SessionItem { Name = Path.GetFileName(file), FilePath = file });
+                }
             }
-            
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                Console.WriteLine($"Error reading data folder: {ex.Message}");
+            }
+
             ExplorerItems.Add(rootFolder);
         }
 

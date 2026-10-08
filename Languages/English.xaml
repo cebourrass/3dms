@@ -10,6 +10,9 @@
     <!-- Session Tab -->
     <sys:String x:Key="BtnOpenSession">Open Session</sys:String>
     <sys:String x:Key="LblTrackDetected">Track Detected:</sys:String>
+    <sys:String x:Key="LblDataFolder">Data folder:</sys:String>
+    <sys:String x:Key="BtnBrowse">Browse…</sys:String>
+    <sys:String x:Key="TipDataFolder">Folder containing one sub-folder per session (.ra1 files)</sys:String>
     
     <!-- View Tab -->
     <sys:String x:Key="ChkExplorer">Explorer</sys:String>
