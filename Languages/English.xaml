@@ -114,4 +114,12 @@
     <sys:String x:Key="ColRefVmin">Ref Vmin</sys:String>
     <sys:String x:Key="ColSelVmin">Sel Vmin</sys:String>
     <sys:String x:Key="ColDeltaVmin">Delta</sys:String>
+    <sys:String x:Key="ChkShowCornerMarkers">VMIN</sys:String>
+    <sys:String x:Key="GrpCornerDetection">CORNER DETECTION (Vmin)</sys:String>
+    <sys:String x:Key="LblCornerEntry">Entry (°)</sys:String>
+    <sys:String x:Key="LblCornerExit">Exit (°)</sys:String>
+    <sys:String x:Key="LblCornerMinLength">Min len. (m)</sys:String>
+    <sys:String x:Key="TipCornerEntry">Lean angle above which a corner starts</sys:String>
+    <sys:String x:Key="TipCornerExit">Lean angle below which the corner ends</sys:String>
+    <sys:String x:Key="TipCornerMinLength">Minimum length for a leaning zone to count as a corner</sys:String>
 </ResourceDictionary>

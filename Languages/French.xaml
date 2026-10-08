@@ -114,4 +114,12 @@
     <sys:String x:Key="ColRefVmin">Vmin Réf</sys:String>
     <sys:String x:Key="ColSelVmin">Vmin Sél</sys:String>
     <sys:String x:Key="ColDeltaVmin">Delta</sys:String>
+    <sys:String x:Key="ChkShowCornerMarkers">VMIN</sys:String>
+    <sys:String x:Key="GrpCornerDetection">DÉTECTION VIRAGES (Vmin)</sys:String>
+    <sys:String x:Key="LblCornerEntry">Entrée (°)</sys:String>
+    <sys:String x:Key="LblCornerExit">Sortie (°)</sys:String>
+    <sys:String x:Key="LblCornerMinLength">Long. min (m)</sys:String>
+    <sys:String x:Key="TipCornerEntry">Angle d'inclinaison au-delà duquel un virage commence</sys:String>
+    <sys:String x:Key="TipCornerExit">Angle d'inclinaison en dessous duquel le virage se termine</sys:String>
+    <sys:String x:Key="TipCornerMinLength">Longueur minimale pour qu'une zone inclinée compte comme un virage</sys:String>
 </ResourceDictionary>

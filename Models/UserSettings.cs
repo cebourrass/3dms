@@ -69,6 +69,12 @@ namespace Analyzer.Models
         public double RegularityThresholdExcellent { get; set; } = 0.10;
         public double RegularityThresholdMedium { get; set; } = 0.30;
 
+        // Détection des virages (analyse Vmin)
+        public double CornerEntryAngle { get; set; } = 15;
+        public double CornerExitAngle { get; set; } = 8;
+        public double CornerMinLength { get; set; } = 30;
+        public bool ShowCornerMarkers { get; set; } = true;
+
         // Dossier racine des données 3DMS (contient un sous-dossier par circuit/journée)
         public string? DataFolderPath { get; set; }
 

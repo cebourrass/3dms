@@ -115,6 +115,35 @@ namespace Analyzer.ViewModels
         private bool _autoCenterMap = true;
         public bool AutoCenterMap { get => _autoCenterMap; set => SetProperty(ref _autoCenterMap, value); }
 
+        private bool _showCornerMarkers = true;
+        public bool ShowCornerMarkers { get => _showCornerMarkers; set => SetProperty(ref _showCornerMarkers, value); }
+
+        // Seuils de détection des virages (analyse Vmin)
+        private double _cornerEntryAngle = 15;
+        public double CornerEntryAngle { get => _cornerEntryAngle; set { if (SetProperty(ref _cornerEntryAngle, value)) AnalyzeCorners(); } }
+
+        private double _cornerExitAngle = 8;
+        public double CornerExitAngle { get => _cornerExitAngle; set { if (SetProperty(ref _cornerExitAngle, value)) AnalyzeCorners(); } }
+
+        private double _cornerMinLength = 30;
+        public double CornerMinLength { get => _cornerMinLength; set { if (SetProperty(ref _cornerMinLength, value)) AnalyzeCorners(); } }
+
+        // Virage sélectionné dans le tableau Vmin : mis en évidence sur la carte
+        private CornerComparison? _selectedCornerComparison;
+        public CornerComparison? SelectedCornerComparison
+        {
+            get => _selectedCornerComparison;
+            set
+            {
+                var previous = _selectedCornerComparison;
+                if (SetProperty(ref _selectedCornerComparison, value))
+                {
+                    if (previous != null) previous.IsHighlighted = false;
+                    if (value != null) value.IsHighlighted = true;
+                }
+            }
+        }
+
         // Ancien emplacement codé en dur, utilisé tant qu'aucun dossier n'a été configuré
         private const string LegacyDataFolderPath = @"C:\dev\3DMS-CED\3DMS Evo (38.39.8F.DC.D1.31)";
 
@@ -763,6 +792,10 @@ namespace Analyzer.ViewModels
             
             _regularityThresholdExcellent = _settings.RegularityThresholdExcellent;
             _regularityThresholdMedium = _settings.RegularityThresholdMedium;
+            _cornerEntryAngle = _settings.CornerEntryAngle > 0 ? _settings.CornerEntryAngle : 15;
+            _cornerExitAngle = _settings.CornerExitAngle > 0 ? _settings.CornerExitAngle : 8;
+            _cornerMinLength = _settings.CornerMinLength > 0 ? _settings.CornerMinLength : 30;
+            _showCornerMarkers = _settings.ShowCornerMarkers;
             SelectedPilotProfile = PilotProfiles.FirstOrDefault(p => p.Name == _settings.SelectedPilotProfileName) ?? PilotProfiles[1];
 
             _isLapsVisible = _settings.IsLapsVisible;
@@ -845,6 +878,10 @@ namespace Analyzer.ViewModels
             _settings.SelectedPilotProfileName = SelectedPilotProfile?.Name;
             _settings.RegularityThresholdExcellent = RegularityThresholdExcellent;
             _settings.RegularityThresholdMedium = RegularityThresholdMedium;
+            _settings.CornerEntryAngle = CornerEntryAngle;
+            _settings.CornerExitAngle = CornerExitAngle;
+            _settings.CornerMinLength = CornerMinLength;
+            _settings.ShowCornerMarkers = ShowCornerMarkers;
 
             _settingsService.SaveSettings(_settings);
         }
@@ -1485,12 +1522,22 @@ namespace Analyzer.ViewModels
                 return;
             }
 
-            var corners = _cornerService.DetectCorners(ReferenceLap.TelemetryPoints);
+            var detection = new CornerDetectionSettings(CornerEntryAngle, CornerExitAngle, CornerMinLength);
+            var corners = _cornerService.DetectCorners(ReferenceLap.TelemetryPoints, detection);
             var comparisons = _cornerService.CompareLaps(ReferenceLap, SelectedLap, corners);
+
+            // Nom du virage dans la langue courante (ex. : "Virage 3" / "Corner 3")
+            string prefix = System.Windows.Application.Current?.TryFindResource("ColCorner") as string ?? "Virage";
+            foreach (var comp in comparisons) comp.CornerName = $"{prefix} {comp.Number}";
+
+            // Conserver la sélection du même virage après un recalcul
+            int? highlighted = SelectedCornerComparison?.Number;
 
             CornerComparisons.Clear();
             foreach (var comp in comparisons) CornerComparisons.Add(comp);
+            ProjectCornerMarkers();
 
+            SelectedCornerComparison = highlighted is int n ? CornerComparisons.FirstOrDefault(c => c.Number == n) : null;
             IsCornerAnalysisVisible = CornerComparisons.Any();
         }
 
@@ -2331,6 +2378,38 @@ namespace Analyzer.ViewModels
                         Thickness = lap == SelectedLap ? dynamicThickness : (dynamicThickness * 0.8),
                         Opacity = 1.0f
                     });
+                }
+            }
+
+            // La projection a pu changer : replacer les marqueurs Vmin
+            ProjectCornerMarkers();
+        }
+
+        private System.Windows.Point ProjectToMap(TelemetryPoint p)
+        {
+            double x = (p.Longitude - _mapMinLon) * _mapRatio * _mapScale + (MapCanvasSize * 0.05);
+            double y = MapCanvasSize - ((p.Latitude - _mapMinLat) * _mapScale + (MapCanvasSize * 0.05));
+            return new System.Windows.Point(x, y);
+        }
+
+        private void ProjectCornerMarkers()
+        {
+            foreach (var c in CornerComparisons)
+            {
+                c.HasMapPosition = _mapScale > 0 && c.SelectedVminPoint != null;
+                if (c.HasMapPosition)
+                {
+                    var pt = ProjectToMap(c.SelectedVminPoint!);
+                    c.MapX = pt.X;
+                    c.MapY = pt.Y;
+                }
+
+                c.HasRefMapPosition = _mapScale > 0 && c.ReferenceVminPoint != null;
+                if (c.HasRefMapPosition)
+                {
+                    var pt = ProjectToMap(c.ReferenceVminPoint!);
+                    c.RefMapX = pt.X;
+                    c.RefMapY = pt.Y;
                 }
             }
         }
