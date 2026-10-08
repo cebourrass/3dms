@@ -16,10 +16,17 @@ namespace Analyzer.Models
     {
         public int Number { get; set; }
         public string CornerName { get; set; } = string.Empty;
-        public double ReferenceVmin { get; set; }
+        // Null quand aucune référence n'est active : pas de delta dans ce cas
+        public double? ReferenceVmin { get; set; }
         public double SelectedVmin { get; set; }
-        public double DeltaVmin => SelectedVmin - ReferenceVmin;
-        public string DeltaColor => DeltaVmin < -1 ? "#ef4444" : (DeltaVmin > 1 ? "#22c55e" : "#ffffff");
+        public double? DeltaVmin => ReferenceVmin is double r ? SelectedVmin - r : null;
+        public string DeltaColor => DeltaVmin switch
+        {
+            null => "#38bdf8",      // Pas de référence : couleur neutre
+            < -1 => "#ef4444",
+            > 1 => "#22c55e",
+            _ => "#ffffff"
+        };
 
         // Points GPS où la Vmin est atteinte (null si aucun point dans le virage)
         public TelemetryPoint? ReferenceVminPoint { get; set; }

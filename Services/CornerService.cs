@@ -70,22 +70,26 @@ namespace Analyzer.Services
             return corners;
         }
 
-        public List<CornerComparison> CompareLaps(LapData reference, LapData selected, List<Corner> corners)
+        /// <summary>
+        /// Vmin de chaque virage sur le tour sélectionné, comparée à la référence si elle est fournie.
+        /// </summary>
+        public List<CornerComparison> CompareLaps(LapData? reference, LapData selected, List<Corner> corners)
         {
             var comparisons = new List<CornerComparison>();
-            if (reference == null || selected == null || reference.TelemetryPoints == null || selected.TelemetryPoints == null)
+            if (selected?.TelemetryPoints == null)
                 return comparisons;
 
             foreach (var corner in corners)
             {
-                var refPoint = GetVminPointInRelativeRange(reference.TelemetryPoints, reference.StartDistance, corner.StartDistance, corner.EndDistance);
+                var refPoint = reference?.TelemetryPoints == null ? null
+                    : GetVminPointInRelativeRange(reference.TelemetryPoints, reference.StartDistance, corner.StartDistance, corner.EndDistance);
                 var selPoint = GetVminPointInRelativeRange(selected.TelemetryPoints, selected.StartDistance, corner.StartDistance, corner.EndDistance);
 
                 comparisons.Add(new CornerComparison
                 {
                     Number = corner.Id,
                     CornerName = corner.Name,
-                    ReferenceVmin = refPoint?.Speed ?? 0,
+                    ReferenceVmin = refPoint?.Speed,
                     SelectedVmin = selPoint?.Speed ?? 0,
                     ReferenceVminPoint = refPoint,
                     SelectedVminPoint = selPoint

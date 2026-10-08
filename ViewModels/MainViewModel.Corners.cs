@@ -57,16 +57,21 @@ namespace Analyzer.ViewModels
 
         private void AnalyzeCorners()
         {
-            if (ReferenceLap == null || SelectedLap == null || ReferenceLap.TelemetryPoints == null || SelectedLap.TelemetryPoints == null)
+            if (SelectedLap?.TelemetryPoints == null)
             {
                 IsCornerAnalysisVisible = false;
                 CornerComparisons.Clear();
                 return;
             }
 
+            // Référence active (définie et affichée) : virages détectés sur la référence et delta calculé.
+            // Sinon : virages et Vmin du tour sélectionné seul.
+            var reference = ShowReference && ReferenceLap?.TelemetryPoints != null ? ReferenceLap : null;
+            var basis = reference ?? SelectedLap;
+
             var detection = new CornerDetectionSettings(CornerEntryAngle, CornerExitAngle, CornerMinLength);
-            var corners = _cornerService.DetectCorners(ReferenceLap.TelemetryPoints, detection);
-            var comparisons = _cornerService.CompareLaps(ReferenceLap, SelectedLap, corners);
+            var corners = _cornerService.DetectCorners(basis.TelemetryPoints!, detection);
+            var comparisons = _cornerService.CompareLaps(reference, SelectedLap, corners);
 
             // Nom du virage dans la langue courante (ex. : "Virage 3" / "Corner 3")
             string prefix = System.Windows.Application.Current?.TryFindResource("ColCorner") as string ?? "Virage";
