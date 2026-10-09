@@ -32,7 +32,12 @@ Liste des fonctionnalités et améliorations planifiées pour l'analyse de pilot
   - Outils de lecture : lister les sessions/circuits, résumé d'une session (tours, meilleur tour, tour idéal, régularité), télémétrie d'un tour (échantillonnée), comparaison de deux tours (Delta Time, Vmin par virage).
   - Réutiliser les services existants (`Ra1ReaderService`, `LapService`, `CornerService`) dans une bibliothèque partagée entre l'appli WPF et le serveur MCP.
   - [x] Base de connaissances dans [coach/](coach/README.md) : expertise pilotage moto sur circuit ([coach/knowledge/](coach/knowledge/)) + une fiche par pilote ([coach/pilots/](coach/pilots/)), à exposer en ressources MCP.
-  - [ ] Compléter la fiche [Cedric](coach/pilots/cedric.md) à partir du skill « profil Cedric ».
+  - [x] Fiche [Cedric](coach/pilots/cedric.md) initialisée à partir de l'export « connaissances R1 » (peu de données).
+  - [ ] **Mise à jour du profil pilote à partir des sessions** :
+    - Section « Mesures » générée automatiquement par circuit (entre balises `<!-- AUTO -->`) : sessions analysées, meilleur tour, tour idéal, Vmax, Vmin par virage, angle max, régularité, évolution entre sessions.
+    - Détection des nouvelles sessions dans le dossier des données depuis la dernière mise à jour.
+    - Sections qualitatives (apprentissages, chantiers, réglages) : le coach propose les ajouts, le pilote valide avant écriture.
+    - Croiser avec l'historique des réglages (ex. couronne 43 → 41) pour attribuer les gains.
   - [ ] Prompt MCP « Débrief de session » (expertise + fiche pilote + résumé de session) et proposition de mise à jour de la fiche après chaque débrief.
 
 ## 🛠️ Technique
