@@ -33,9 +33,10 @@ Liste des fonctionnalités et améliorations planifiées pour l'analyse de pilot
   - Réutiliser les services existants (`Ra1ReaderService`, `LapService`, `CornerService`) dans une bibliothèque partagée entre l'appli WPF et le serveur MCP.
   - [x] Base de connaissances dans [coach/](coach/README.md) : expertise pilotage moto sur circuit ([coach/knowledge/](coach/knowledge/)) + une fiche par pilote ([coach/pilots/](coach/pilots/)), à exposer en ressources MCP.
   - [x] Fiche [Cedric](coach/pilots/cedric.md) initialisée à partir de l'export « connaissances R1 » (peu de données).
+  - [x] Bibliothèque partagée [Core/](Core/) (lecture .ra1, circuits, tours, statistiques, Vmin) utilisée par l'appli et les outils.
   - [ ] **Mise à jour du profil pilote à partir des sessions** :
-    - Section « Mesures » générée automatiquement par circuit (entre balises `<!-- AUTO -->`) : sessions analysées, meilleur tour, tour idéal, Vmax, Vmin par virage, angle max, régularité, évolution entre sessions.
-    - Détection des nouvelles sessions dans le dossier des données depuis la dernière mise à jour.
+    - [x] Section « Mesures » générée par l'outil `3dms-profile` ([Tools/ProfileStats](Tools/ProfileStats/), voir [coach/README.md](coach/README.md)) : par circuit, meilleur tour, tour idéal, régularité, Vmax, angle max, Vmin par virage sur le record.
+    - [ ] Lancer la mise à jour automatiquement (à l'import d'une session ou depuis l'appli) au lieu de la ligne de commande.
     - Sections qualitatives (apprentissages, chantiers, réglages) : le coach propose les ajouts, le pilote valide avant écriture.
     - Croiser avec l'historique des réglages (ex. couronne 43 → 41) pour attribuer les gains.
   - [ ] Prompt MCP « Débrief de session » (expertise + fiche pilote + résumé de session) et proposition de mise à jour de la fiche après chaque débrief.
@@ -44,4 +45,5 @@ Liste des fonctionnalités et améliorations planifiées pour l'analyse de pilot
 - [ ] **Réglages dans %AppData%** : Stocker `user_settings.json` et `dock_layout.xml` dans `%AppData%` plutôt qu'à côté de l'exécutable (perdus à chaque changement de framework/dossier de build).
 - [ ] **Mise à jour des paquets** : LiveCharts2 `2.0.0-rc2` → `2.0.5`, CommunityToolkit.Mvvm `8.2.2` → `8.4.2`, AvalonDock compatible .NET 10 (supprime le warning NU1701).
 - [ ] **Sous-ViewModels** : Extraire de vrais sous-ViewModels (Charts, Map, Corners...) à partir des fichiers partiels de `MainViewModel`, en commençant par `MainViewModel.Charts.cs` (~1 160 lignes).
+- [ ] **Tours aberrants dans l'appli** : un tour mal découpé (distance très inférieure aux autres, ex. Alcarras 12/10/2025 tour 1 à 3 046 m au lieu de ~3 655 m) peut être retenu comme meilleur tour et fausser le tour idéal. Réutiliser le filtre de distance de `SessionAnalyzer`.
 - [ ] **Projet de tests** : Tests automatisés (lecture .ra1, découpage des tours, détection des virages/Vmin) sur les sessions de test versionnées.

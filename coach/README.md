@@ -17,6 +17,19 @@ Deux niveaux, combinés à chaque analyse :
 4. Formuler les conseils selon [`knowledge/06-methode-coaching.md`](knowledge/06-methode-coaching.md), en tenant compte des priorités et du vocabulaire de la fiche pilote.
 5. Après la séance : proposer la mise à jour de la fiche pilote (apprentissages validés, nouveaux chantiers). La fiche n'est modifiée qu'avec l'accord du pilote.
 
+## Mise à jour des mesures (`3dms-profile`)
+
+La section **« Mesures (automatique) »** des fiches pilotes est générée par l'outil `Tools/ProfileStats` à partir des sessions `.ra1` : par circuit, meilleur tour, tour idéal, régularité, Vmax, angle max, freinage max, Vmin par virage sur le record. Seul le contenu entre les balises `AUTO:MESURES` est réécrit ; le reste de la fiche n'est jamais modifié.
+
+```bash
+dotnet run --project Tools/ProfileStats -- --data "<dossier des sessions>" --data "3DMS Evo (38.39.8F.DC.D1.31)" --profile coach/pilots/cedric.md
+```
+
+- `--data` est répétable (dossier du logiciel 3DMS + sessions de test du repo) ; une même session présente dans deux dossiers n'est comptée qu'une fois.
+- `--print` affiche la section sans écrire la fiche.
+- Les tours dont la distance s'écarte de plus de 10 % de la médiane de la session sont écartés (ligne mal détectée, stands).
+- Les sessions 2025 n'ont pas d'angle enregistré (accélération saturée à ±2 G) : angle, freinage et Vmin y sont « n/d ».
+
 ## Exposition MCP prévue
 
 - Chaque fichier est exposé comme **ressource MCP** (`coach://knowledge/<fichier>`, `coach://pilots/<pilote>`).

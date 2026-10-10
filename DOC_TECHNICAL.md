@@ -20,13 +20,21 @@ WinForms est activé (`UseWindowsForms`) uniquement pour `ColorDialog`, toujours
 ## Arborescence
 
 ```
-Models/          Données (TelemetryPoint, LapData, SessionData, TrackMap, Corner, UserSettings, ExplorerItems)
-Services/        Lecture fichiers et calculs sans état UI
-  Ra1ReaderService      Lecture des sessions .ra1
-  MapReaderService      Lecture des circuits .map
-  LapService            Découpage en tours (passage de la ligne Start)
-  CornerService         Détection des virages et comparaison des Vmin
-  SettingsService       Persistance user_settings.json / dock_layout.xml
+Core/            Bibliothèque partagée 3DMS.Core (net10.0, sans UI) : appli, outils, futur serveur MCP
+  Models/               TelemetryPoint, LapData, SessionData, TrackMap, Corner, CircuitMetadata
+  Services/
+    Ra1ReaderService      Lecture des sessions .ra1
+    MapReaderService      Lecture des circuits .map
+    CircuitCatalog        Bibliothèque des circuits, détection du circuit (GPS puis nom du dossier)
+    LapService            Découpage en tours (passage de la ligne Start)
+    LapStatistics         Secteurs, tour idéal, régularité des temps
+    CornerService         Détection des virages et comparaison des Vmin
+    SessionAnalyzer       Résumé chiffré complet d'une session (utilisé par les outils)
+    TimeFormat            Formats de temps "mm:ss.cc" et dates de session
+Tools/ProfileStats/   Outil 3dms-profile : mesures par circuit écrites dans une fiche pilote (voir coach/README.md)
+coach/           Base de connaissances du coach Claude (expertise + fiches pilotes)
+Models/          Modèles propres à l'appli (UserSettings, ExplorerItems)
+Services/        SettingsService (persistance user_settings.json / dock_layout.xml)
 ViewModels/      MainViewModel (classe partielle, un fichier par domaine) + DisplayItems
 Languages/       French.xaml / English.xaml (dictionnaires de ressources, mêmes clés)
 Map/Circuits/    Bibliothèque de circuits .map (par pays) ; Map/Routes/ pour les routes
@@ -40,7 +48,7 @@ MainWindow.xaml  Vue unique : ruban (SESSION / VUE / PARAMÈTRES) + panneaux Ava
 | :--- | :--- |
 | `MainViewModel.cs` | Cœur : services, constructeur (chargement des réglages), `SaveSettings`, chargement de session, tours, tour de référence, langue, visibilité des panneaux |
 | `MainViewModel.Explorer.cs` | Dossier des données (`DataFolderPath`) et arbre de l'explorateur |
-| `MainViewModel.Circuits.cs` | Liste des circuits, détection automatique du circuit depuis le GPS, association session / .map |
+| `MainViewModel.Circuits.cs` | Liste des circuits et circuit sélectionné (détection déléguée à `CircuitCatalog`) |
 | `MainViewModel.Charts.cs` | Styles des courbes, lissage / interpolation, construction des séries LiveCharts, Delta Time, curseur |
 | `MainViewModel.Map.cs` | Projection GPS → canvas, trajectoires, zoom / rotation / pan, curseur carte, dégradé d'accélération |
 | `MainViewModel.Corners.cs` | Analyse Vmin : seuils de détection, tableau comparatif, marqueurs sur la carte |
