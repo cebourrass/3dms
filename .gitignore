@@ -38,3 +38,10 @@ Desktop.ini
 *.vshost.exe.config
 *.vshost.exe.manifest
 *.vshost.exe.config.user
+
+## Fichiers locaux / temporaires ##
+*.log
+brain/
+scratch/
+# Index de téléchargement créé par le logiciel 3DMS (inutile pour les sessions de test)
+3DMS Evo*/Download
