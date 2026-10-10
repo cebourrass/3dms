@@ -46,14 +46,6 @@ namespace Analyzer.ViewModels
         public double SortTimeMs { get; set; }
     }
 
-    public class CircuitMetadata
-    {
-        public string Name { get; set; } = string.Empty;
-        public string FilePath { get; set; } = string.Empty;
-        public GpsPoint? StartPoint { get; set; }
-        public override string ToString() => Name;
-    }
-
     public class PilotProfile
     {
         public string Name { get; set; } = string.Empty;

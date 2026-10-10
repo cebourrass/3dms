@@ -466,20 +466,9 @@ namespace Analyzer.ViewModels
                     CurrentSession.BestLapTime = best.LapTime;
                     BestLapTime = best.LapTime;
 
-                    double idealMs = 0;
-                    int numSectors = CurrentSession.PartialCount;
-                    if (numSectors > 0)
+                    if (CurrentSession.PartialCount > 0)
                     {
-                        for (int s = 0; s < numSectors; s++)
-                        {
-                            var bestSectorMs = completeLaps
-                                .Select(l => ParseTimeToMs(l.Partials[s]))
-                                .Where(ms => ms > 0)
-                                .DefaultIfEmpty(0)
-                                .Min();
-                            idealMs += bestSectorMs;
-                        }
-                        IdealLapTime = FormatTimeFromMs(idealMs);
+                        IdealLapTime = TimeFormat.FormatMs(LapStatistics.IdealLapMs(completeLaps, CurrentSession.PartialCount));
                     }
                 }
 
@@ -507,26 +496,6 @@ namespace Analyzer.ViewModels
         {
         }
 
-        private double ParseTimeToMs(string timeStr)
-        {
-            if (string.IsNullOrEmpty(timeStr) || timeStr == "-") return 0;
-            try
-            {
-                var parts = timeStr.Split(':');
-                if (parts.Length < 2) return 0;
-                
-                double minutes = double.Parse(parts[0]);
-                double seconds = double.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture);
-                return (minutes * 60 + seconds) * 1000.0;
-            }
-            catch { return 0; }
-        }
-
-        private string FormatTimeFromMs(double ms)
-        {
-            TimeSpan t = TimeSpan.FromMilliseconds(ms);
-            return string.Format("{0:D2}:{1:D2}.{2:D2}", t.Minutes, t.Seconds, t.Milliseconds / 10);
-        }
         private DateTime ParseDateFromFileName(string fileName)
         {
             try

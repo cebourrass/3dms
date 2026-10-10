@@ -107,7 +107,7 @@ namespace Analyzer.ViewModels
                 int sectorIndex = i;
                 var sectorTimes = laps
                     .Where(l => l.Partials != null && sectorIndex < l.Partials.Length)
-                    .Select(l => ParseTimeToMs(l.Partials[sectorIndex]) / 1000.0)
+                    .Select(l => TimeFormat.ParseToMs(l.Partials[sectorIndex]) / 1000.0)
                     .Where(t => t > 0)
                     .ToList();
 

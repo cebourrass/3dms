@@ -13,6 +13,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Sous-projets (Core, outils) : compilés par leur propre .csproj -->
+    <Compile Remove="Core/**;Tools/**" />
+    <None Remove="Core/**;Tools/**" />
+    <EmbeddedResource Remove="Core/**;Tools/**" />
+    <Page Remove="Core/**;Tools/**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="Core\3DMS.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- WinForms n'est utilisé que via des noms complets (ColorDialog) : évite les conflits MenuItem/DataGrid/TextBox avec WPF -->
     <Using Remove="System.Windows.Forms" />
   </ItemGroup>
