@@ -14,6 +14,8 @@ namespace Analyzer.Models
         public double StartTimeMs { get; set; }
         public double StartDistance { get; set; }
         public double LapTimeMs { get; set; }
+        /// <summary>Distance parcourue pendant le tour (m).</summary>
+        public double LapDistance { get; set; }
 
         public double MaxSpeed { get; set; }
         public double MinSpeed { get; set; }

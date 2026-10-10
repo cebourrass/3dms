@@ -114,6 +114,7 @@
     <sys:String x:Key="ColRefVmin">Ref Vmin</sys:String>
     <sys:String x:Key="ColSelVmin">Sel Vmin</sys:String>
     <sys:String x:Key="ColDeltaVmin">Delta</sys:String>
+    <sys:String x:Key="TipSuspectLap">Suspect lap: abnormal distance (start line missed, pit lane). Excluded from best and ideal lap.</sys:String>
     <sys:String x:Key="ChkShowCornerMarkers">VMIN</sys:String>
     <sys:String x:Key="GrpCornerDetection">CORNER DETECTION (Vmin)</sys:String>
     <sys:String x:Key="LblCornerEntry">Entry (°)</sys:String>

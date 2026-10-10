@@ -21,6 +21,11 @@
         <!-- Grid Styles -->
         <Style x:Key="BestLapRowStyle" TargetType="DataGridRow" BasedOn="{StaticResource DefaultDataGridRowStyle}">
             <Style.Triggers>
+                <!-- Tour au découpage douteux (distance anormale) : exclu du meilleur tour et du tour idéal -->
+                <DataTrigger Binding="{Binding Type}" Value="Suspect">
+                    <Setter Property="Foreground" Value="#f59e0b"/>
+                    <Setter Property="ToolTip" Value="{DynamicResource TipSuspectLap}"/>
+                </DataTrigger>
                 <DataTrigger Binding="{Binding IsBestLap}" Value="True">
                     <Setter Property="Background" Value="#005a9e"/>
                     <Setter Property="Foreground" Value="White"/>

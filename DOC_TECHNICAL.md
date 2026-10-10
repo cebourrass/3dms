@@ -63,7 +63,7 @@ MainWindow.xaml  Vue unique : ruban (SESSION / VUE / PARAMÈTRES) + panneaux Ava
 
 1. **Explorateur** : liste les `.ra1` du dossier des données (réglage SESSION → *Dossier des données*). Le dossier contient un sous-dossier par journée ; les `.ra1` posés à la racine sont aussi listés.
 2. **Chargement** (`LoadSession`) : `Ra1ReaderService.ReadFile`, puis détection du circuit (dossier → cache, sinon comparaison GPS avec les `.map`).
-3. **Tours** (`LapService.CalculateLaps`) : passage au plus près du marqueur `Start*` du `.map` (seuil 25 m), avec interpolation temporelle du passage exact.
+3. **Tours** (`LapService.CalculateLaps`) : passage au plus près du marqueur `Start*` du `.map` (seuil 25 m), avec interpolation temporelle du passage exact. Un tour est « Incomplet » s'il manque un passage de secteur, « Suspect » si sa distance s'écarte de plus de 10 % de la médiane des tours complets (découpage douteux) ; seuls les tours « Complet » comptent pour le meilleur tour et le tour idéal.
 4. **Lissage / interpolation** (`InterpolateAndSmooth`) : moyenne glissante par grandeur (vitesse, angle, accélération, GPS), fenêtres *Brut / Standard / Fort / Très fort* = 1 / 3 / 5 / 8 points, puis rééchantillonnage linéaire (10 à 100 Hz, 50 Hz par défaut).
 5. **Graphiques** : axe X en temps pour un tour seul, en distance dès qu'on compare plusieurs tours ou qu'une référence est affichée. Delta Time cumulé par rapport à la référence.
 6. **Carte** : projection équirectangulaire (cos(latitude) pour la longitude) dans un canvas 500×500 ; tracé du `.map`, trajectoires des tours (épaisseur selon le temps en comparaison), dégradé d'accélération optionnel.

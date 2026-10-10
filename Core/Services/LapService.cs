@@ -9,6 +9,7 @@ namespace Analyzer.Services
     {
         private const double EarthRadiusKm = 6371.0;
         private const double CrossingThresholdMeters = 25.0;
+        private const double SuspectDistanceTolerance = 0.10;
 
         public List<LapData> CalculateLaps(List<TelemetryPoint> points, TrackMap map)
         {
@@ -52,7 +53,27 @@ namespace Analyzer.Services
                 AddLap(laps, points, lastCrossingIndex, points.Count - 1, currentLapNumber, map, points.Last().Time, lastCrossingTimeMs, isPartial: true);
             }
 
+            MarkDistanceAnomalies(laps);
             return laps;
+        }
+
+        /// <summary>
+        /// Les points d'un tour peuvent être valides mais le découpage faux (ligne Start mal détectée,
+        /// passage par les stands) : un tour complet dont la distance s'écarte de plus de 10 % de la médiane
+        /// des tours complets est marqué "Suspect" et sort du meilleur tour / tour idéal.
+        /// </summary>
+        private static void MarkDistanceAnomalies(List<LapData> laps)
+        {
+            var complete = laps.Where(l => l.Type == "Complet" && l.LapDistance > 0).ToList();
+            if (complete.Count < 3) return;
+
+            var sorted = complete.Select(l => l.LapDistance).OrderBy(d => d).ToList();
+            double median = sorted[sorted.Count / 2];
+
+            foreach (var lap in complete.Where(l => Math.Abs(l.LapDistance - median) > median * SuspectDistanceTolerance))
+            {
+                lap.Type = "Suspect";
+            }
         }
 
         private void AddLap(List<LapData> laps, List<TelemetryPoint> allPoints, int startIndex, int endIndex, int number, TrackMap map, double endTimeMs, double startTimeMs, bool isPartial = false)
@@ -86,6 +107,7 @@ namespace Analyzer.Services
                 LapTimeMs = durationMs,
                 StartTimeMs = startTimeMs,
                 StartDistance = startDist,
+                LapDistance = lapPoints.Last().Distance - startDist,
                 MaxSpeed = lapPoints.Max(p => p.Speed),
                 MinSpeed = lapPoints.Min(p => p.Speed),
                 MaxLeanLeft = lapPoints.Max(p => p.LeanAngle < 0 ? -p.LeanAngle : 0),

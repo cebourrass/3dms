@@ -23,7 +23,7 @@ namespace Analyzer.Services
         public double LapStdDevSeconds { get; set; }
         public int RepresentativeLaps { get; set; }
         public int CorruptedPoints { get; set; }
-        /// <summary>Tours complets écartés car leur distance est anormale (ligne mal détectée, passage par les stands...).</summary>
+        /// <summary>Tours marqués "Suspect" par <see cref="LapService"/> (distance anormale), exclus des statistiques.</summary>
         public int ExcludedLaps { get; set; }
         /// <summary>Faux pour les anciennes sessions où le boîtier n'enregistrait pas l'angle (et saturait l'accélération à ±2 G).</summary>
         public bool HasLeanData { get; set; }
@@ -76,8 +76,7 @@ namespace Analyzer.Services
             summary.MaxAccelG = laps.Max(l => l.MaxAccel);
 
             var complete = laps.Where(l => l.Type == "Complet" && l.LapTimeMs > 0).ToList();
-            complete = ExcludeDistanceAnomalies(complete, points, out int excluded);
-            summary.ExcludedLaps = excluded;
+            summary.ExcludedLaps = laps.Count(l => l.Type == "Suspect");
             summary.CompleteLaps = complete.Count;
             summary.LapTimesMs = complete.Select(l => l.LapTimeMs).ToList();
             if (complete.Count == 0) return summary;
@@ -96,30 +95,6 @@ namespace Analyzer.Services
             summary.BestLapCorners = _cornerService.CompareLaps(null, best, corners);
 
             return summary;
-        }
-
-        /// <summary>
-        /// Écarte les tours dont la distance parcourue s'écarte de plus de 10 % de la médiane de la session.
-        /// </summary>
-        private static List<LapData> ExcludeDistanceAnomalies(List<LapData> complete, List<TelemetryPoint> points, out int excluded)
-        {
-            excluded = 0;
-            if (complete.Count < 3) return complete;
-
-            var distances = complete.ToDictionary(l => l, l =>
-            {
-                double end = l.StartTimeMs + l.LapTimeMs;
-                var last = points.LastOrDefault(p => p.Time <= end);
-                return last == null ? 0 : last.Distance - l.StartDistance;
-            });
-
-            var sorted = distances.Values.OrderBy(d => d).ToList();
-            double median = sorted[sorted.Count / 2];
-            if (median <= 0) return complete;
-
-            var kept = complete.Where(l => Math.Abs(distances[l] - median) <= median * 0.10).ToList();
-            excluded = complete.Count - kept.Count;
-            return kept;
         }
     }
 }

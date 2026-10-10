@@ -27,7 +27,7 @@ dotnet run --project Tools/ProfileStats -- --data "<dossier des sessions>" --dat
 
 - `--data` est répétable (dossier du logiciel 3DMS + sessions de test du repo) ; une même session présente dans deux dossiers n'est comptée qu'une fois.
 - `--print` affiche la section sans écrire la fiche.
-- Les tours dont la distance s'écarte de plus de 10 % de la médiane de la session sont écartés (ligne mal détectée, stands).
+- Les tours marqués « Suspect » par `LapService` (distance à plus de 10 % de la médiane de la session : ligne mal détectée, stands) sont écartés, comme dans l'appli.
 - Les sessions 2025 n'ont pas d'angle enregistré (accélération saturée à ±2 G) : angle, freinage et Vmin y sont « n/d ».
 
 ## Exposition MCP prévue
